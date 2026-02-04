@@ -1,0 +1,116 @@
+rsf_version: 2
+
+app:
+  title: "Hello 3DS Homebrew"
+  product_code: HELLO3DS
+  unique_id: 0x12345
+  
+  category: Application
+  
+  version: 0x00000100
+  
+  description: "A simple 3DS homebrew application"
+  
+  author: "Development Team"
+  
+  icon: null
+  
+  memory_type: Application
+  memory_size: 0x20000000
+  
+  target_platform: CTR
+  
+  ncch:
+    content_id: 0x0
+    bitrate: 128
+    flags: None
+    
+system:
+  country_code: -1
+  
+file_system:
+  subtype: ctr
+  
+exheader:
+  system_mode: 64MB
+  
+arm9:
+  access_control: null
+  descriptor_version: 2
+  
+  core_version: 1
+  
+  enable_l2_cache: true
+  
+  flags: ProcessUnknownIrq | DisableDebugger | AllowNonAlphabeticCharacters | CanUseSDMC | CanUseGPRS
+  
+  priority: 16
+  
+  resource_limit_category: Default
+  
+  external_memory_access: 3
+  
+  memory_mapping:
+    io_register_mapping: 0x1FF80000-0x1FFFFFF
+    
+  affinity_mask: 0
+  
+  priority_for_new_threads: 16
+  
+arm11:
+  access_control: null
+  descriptor_version: 6
+  
+  system_mode: 64MB
+  cpuid_setting: None
+  
+  handle_table_size: 0x200
+  
+  ideal_processor: 0
+  
+  affinity_mask: 0
+  
+  priority: 16
+  
+  max_priority_for_new_threads: 15
+  
+  memory_mapping:
+    io_register_mapping: 0x1FF80000-0x1FFFFFF
+    
+  flags:
+    enable_va: true
+    ideal_processor: 0
+    use_cpu_clockrate_alternate: 0
+    
+  resource_limits:
+    commitment_percent: 0
+    thread_priority: 0
+    cpu_time_percent: 0
+    
+  kernel_capabilities:
+    - CoreVersion: 2
+    - ReleaseKernelMajor: 2
+    - ReleaseKernelMinor: 50
+    - DebugCapabilities:
+    - AllowDebugger: true
+    - ForceDebugVersion: true
+    - MemoryMapping:
+    - StartAddress: 0x1FF80000
+      NumPages: 1
+      Flags: rw
+    - InterruptNumbers:
+    - IORegisterMapping:
+    - StartAddress: 0x1FF80000
+      NumPages: 4
+      Flags: rw
+    - Syscall: 0x01
+    - SystemCallTable: 0
+    - HandleTableSize: 0x200
+    - InterruptFlags: 7
+    - MiscFlags:
+    - ProcessIdReserved: 2
+    - ForceDebugVersion: true
+    - AllowNonAlphabeticCharacters: true
+    - CanUseSDMC: true
+    - CanAccessCore2: false
+

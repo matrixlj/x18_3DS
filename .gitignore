@@ -1,0 +1,8 @@
+build/
+*.elf
+*.nds
+*.o
+*.d
+*.map
+.DS_Store
+node_modules/
