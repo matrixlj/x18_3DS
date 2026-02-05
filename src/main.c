@@ -1,82 +1,171 @@
-// Bare-metal Nintendo 3DS - Versione semplificata
-// Questo è un programma che gira senza dipendenze da libctru
+#include "core/state.h"
+#include "core/constants.h"
 
-// Indirizzi di memoria per 3DS
-#define ARM9_ITCM_BASE      0x00000000
-#define ARM9_DTCM_BASE      0x0B000000
-#define IO_BASE             0x10000000
-#define LCD_BASE            0x10202000
-#define VRAM_BASE           0x18000000
+// Screen buffer
+static unsigned short *fb_top = (unsigned short *)VRAM_BASE;
+static unsigned short *fb_bottom = (unsigned short *)(VRAM_BASE + 0x46500);
 
-// Registro di controllo del display
-#define LCD_POWERCNT        ((volatile unsigned int*)(LCD_BASE + 0x10))
-#define LCD_COLORFILL       ((volatile unsigned int*)(LCD_BASE + 0x14))
+// Hardware registers
+#define LCD_POWERCNT        ((volatile unsigned int*)(0x10202000 + 0x10))
+#define LCD_COLORFILL       ((volatile unsigned int*)(0x10202000 + 0x14))
 
-// Registro per il framebuffer (TOP screen)
-#define LCD_TOP_FB1         ((volatile unsigned int*)(LCD_BASE + 0x68))
-#define LCD_TOP_FB2         ((volatile unsigned int*)(LCD_BASE + 0x6C))
+// Function prototypes
+void render_frame();
+void handle_input();
+void update_logic();
+void cleanup();
+void draw_pixel(int x, int y, unsigned short color, int screen);
+void fill_rect(int x1, int y1, int x2, int y2, unsigned short color, int screen);
+void wait_vblank();
 
-// Funzione per disegnare un pixel su 3DS (400x240, RGB565)
-void draw_pixel(int x, int y, unsigned short color) {
-    volatile unsigned short* vram = (volatile unsigned short*)VRAM_BASE;
-    if (x >= 0 && x < 400 && y >= 0 && y < 240) {
-        // 3DS ha layout lineare per il framebuffer
-        vram[y * 400 + x] = color;
+// Helper: draw pixel
+void draw_pixel(int x, int y, unsigned short color, int screen) {
+    unsigned short *fb = (screen == 0) ? fb_top : fb_bottom;
+    int width = (screen == 0) ? SCREEN_WIDTH_TOP : SCREEN_WIDTH_BOTTOM;
+    int height = SCREEN_HEIGHT_TOP;
+    
+    if (x >= 0 && x < width && y >= 0 && y < height) {
+        fb[y * width + x] = color;
     }
 }
 
-// Colori RGB565 (formato nativo 3DS)
-#define COLOR_WHITE   0xFFFF
-#define COLOR_BLACK   0x0000
-#define COLOR_RED     0xF800
-#define COLOR_GREEN   0x07E0
-#define COLOR_BLUE    0x001F
-#define COLOR_YELLOW  0xFFE0
-
-// Disegna un rettangolo pieno
-void fill_rect(int x1, int y1, int x2, int y2, unsigned short color) {
+// Helper: fill rectangle
+void fill_rect(int x1, int y1, int x2, int y2, unsigned short color, int screen) {
     for (int y = y1; y <= y2; y++) {
         for (int x = x1; x <= x2; x++) {
-            draw_pixel(x, y, color);
+            draw_pixel(x, y, color, screen);
         }
     }
 }
 
-// Routine di sincronizzazione con il refresh dello schermo
+// Simple memset for framebuffer
+void simple_memset_fb(unsigned short *ptr, unsigned short value, int count) {
+    for (int i = 0; i < count; i++) {
+        ptr[i] = value;
+    }
+}
+
+// Wait for vblank
 void wait_vblank(void) {
     static volatile unsigned int* gpu_stat = (volatile unsigned int*)0x10400010;
     while (*gpu_stat & 0x01);
     while (!(*gpu_stat & 0x01));
 }
 
+// Input handling
+void handle_button_a() {
+    if (g_app_state.current_state == STATE_MIXER_VIEW) {
+        g_app_state.modified = 0;
+    }
+}
+
+void handle_button_b() {
+    state_set_state(STATE_MENU);
+}
+
+void handle_button_x() {
+    if (g_app_state.current_state == STATE_MIXER_VIEW) {
+        g_app_state.modified = 0;
+    }
+}
+
+void handle_button_y() {
+    if (g_app_state.current_state == STATE_MIXER_VIEW) {
+        // Create new step
+    }
+}
+
+void handle_dpad_up() {
+    if (g_app_state.selected_step > 0) {
+        g_app_state.selected_step--;
+    }
+}
+
+void handle_dpad_down() {
+    g_app_state.selected_step++;
+}
+
+void handle_input() {
+    // Placeholder - would read from 3DS HID module
+}
+
+void render_frame() {
+    // Clear screens
+    simple_memset_fb(fb_top, COLOR_BLACK, SCREEN_WIDTH_TOP * SCREEN_HEIGHT_TOP);
+    simple_memset_fb(fb_bottom, COLOR_BLACK, SCREEN_WIDTH_BOTTOM * SCREEN_HEIGHT_BOTTOM);
+    
+    // Render based on current state
+    switch (g_app_state.current_state) {
+        case STATE_MIXER_VIEW:
+            // Draw mixer interface
+            fill_rect(10, 20, 310, 220, COLOR_DARK_GRAY, 1);
+            break;
+        case STATE_MENU:
+            // Draw menu
+            fill_rect(50, 50, 270, 190, COLOR_GRAY, 1);
+            break;
+        case STATE_EQ_WINDOW:
+            // Draw EQ window
+            fill_rect(30, 30, 290, 210, COLOR_GRAY, 1);
+            break;
+        default:
+            break;
+    }
+}
+
+void update_logic() {
+    // Update game logic
+    switch (g_app_state.current_state) {
+        case STATE_MIXER_VIEW:
+            if (g_app_state.modified) {
+                // Step modified
+            }
+            break;
+        default:
+            break;
+    }
+}
+
 int main(void) {
-    // Abilita i LED/display (assicurati che il display sia acceso)
-    *LCD_POWERCNT |= 0x01000001;  // Abilita entrambi gli schermi
+    // Initialize application state
+    state_init();
     
-    // Pulisci il framebuffer con il colore di fill
-    fill_rect(0, 0, 399, 239, COLOR_BLACK);
+    // Enable displays
+    *LCD_POWERCNT |= 0x01000001;
     
-    // Disegna alcuni rettangoli per testare il display
-    fill_rect(50, 20, 350, 80, COLOR_BLUE);
-    fill_rect(50, 100, 350, 160, COLOR_GREEN);
-    fill_rect(100, 180, 300, 220, COLOR_RED);
+    // Set initial state
+    state_set_state(STATE_MIXER_VIEW);
     
-    // Disegna testo semplice (pattern per rappresentare "Hello 3DS")
-    // Nota: per vero testo font rendering serve libctru
+    // Main loop
+    int frame_count = 0;
+    int running = 1;
     
-    // Loop infinito - il programma rimane attivo
-    unsigned int frame = 0;
-    while (1) {
-        wait_vblank();
-        frame++;
+    while (running) {
+        frame_count++;
         
-        // Potresti usare 'frame' per animazioni
-        // Esempio: flash color ogni 30 frame
-        if (frame % 60 == 0) {
-            unsigned short flash_color = (frame / 60) % 2 ? COLOR_YELLOW : COLOR_WHITE;
-            fill_rect(160, 210, 240, 235, flash_color);
+        // Handle input
+        handle_input();
+        
+        // Update logic
+        update_logic();
+        
+        // Render frame
+        render_frame();
+        
+        // Wait for vblank
+        wait_vblank();
+        
+        // Run for limited frames in test mode
+        if (frame_count >= 300) {
+            running = 0;
         }
     }
     
+    cleanup();
+    
     return 0;
+}
+
+void cleanup() {
+    // Cleanup code
 }

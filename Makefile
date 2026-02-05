@@ -14,12 +14,12 @@ OBJCOPY = arm-none-eabi-objcopy
 
 # Flags per ARM9 (3DS/DS)
 CFLAGS = -march=armv5te -mtune=arm946e-s -Wall -O2 -g -ffreestanding
-CFLAGS += -I$(INCLUDES) -I$(LIBCTRU_INCLUDE)
-LDFLAGS = -nostartfiles -nostdlib
+CFLAGS += -I$(INCLUDES) -I$(LIBCTRU_INCLUDE) -I.
+LDFLAGS = -nostdlib
 
-# File sources
-CSOURCES = $(wildcard $(SOURCES)/*.c)
-OBJECTS = $(CSOURCES:$(SOURCES)/%.c=$(BUILD)/%.o)
+# File sources - now includes subdirectories
+CSOURCES = $(shell find $(SOURCES) -name "*.c")
+OBJECTS = $(CSOURCES:%.c=$(BUILD)/%.o)
 OUTPUT = $(BUILD)/$(TARGET)
 
 ELF_FILE = $(OUTPUT).elf
@@ -35,9 +35,10 @@ all: $(ELF_FILE)
 	@echo "   Run 'make 3dsx' to create 3DSX for Homebrew Launcher"
 
 $(BUILD):
-	mkdir -p $(BUILD)
+	mkdir -p $(BUILD) $(BUILD)/core $(BUILD)/screens $(BUILD)/osc $(BUILD)/storage $(BUILD)/ui $(BUILD)/config
 
-$(BUILD)/%.o: $(SOURCES)/%.c | $(BUILD)
+$(BUILD)/%.o: %.c | $(BUILD)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(ELF_FILE): $(OBJECTS)
