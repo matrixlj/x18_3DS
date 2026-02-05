@@ -4,6 +4,7 @@
 #include "screens/mixer_screen.h"
 #include "screens/step_list_screen.h"
 #include "storage/show_manager.h"
+#include "osc/osc_client.h"
 
 // Screen buffer
 static unsigned short *fb_top = (unsigned short *)VRAM_BASE;
@@ -13,8 +14,9 @@ static unsigned short *fb_bottom = (unsigned short *)(VRAM_BASE + 0x46500);
 #define LCD_POWERCNT        ((volatile unsigned int*)(0x10202000 + 0x10))
 #define LCD_COLORFILL       ((volatile unsigned int*)(0x10202000 + 0x14))
 
-// Global show manager
+// Global show manager and OSC client
 static ShowManager *g_show_manager = 0;
+static OSCClient g_osc_client = {0};
 
 // Function prototypes
 void render_frame();
@@ -155,6 +157,9 @@ int main(void) {
     // Initialize show manager
     g_show_manager = show_manager_init();
     
+    // Initialize OSC client (will connect when show is loaded)
+    osc_client_init(&g_osc_client, g_app_state.mixer_ip, 10023);
+    
     // Enable displays
     *LCD_POWERCNT |= 0x01000001;
     
@@ -193,6 +198,9 @@ int main(void) {
 }
 
 void cleanup() {
+    // Disconnect OSC client
+    osc_client_disconnect(&g_osc_client);
+    
     if (g_show_manager) {
         show_manager_cleanup(g_show_manager);
     }
