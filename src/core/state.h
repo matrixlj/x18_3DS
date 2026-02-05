@@ -18,11 +18,11 @@ typedef enum {
 typedef struct {
     int channel_id;         // 0-15
     char channel_name[32];
-    float fader_level;      // 0.0-100.0
+    int fader_level;        // 0-100 (was float 0.0-100.0)
     int mute;               // 0 or 1
-    float eq_low;           // -20 to +20 dB
-    float eq_mid;           // -20 to +20 dB
-    float eq_high;          // -20 to +20 dB
+    int eq_low;             // -20 to +20 dB (was float)
+    int eq_mid;             // -20 to +20 dB (was float)
+    int eq_high;            // -20 to +20 dB (was float)
 } ChannelState;
 
 // Step State

@@ -1,6 +1,7 @@
 #include "core/state.h"
 #include "core/constants.h"
 #include "screens/menu_screen.h"
+#include "screens/mixer_screen.h"
 #include "storage/show_manager.h"
 
 // Screen buffer
@@ -103,8 +104,7 @@ void render_frame() {
     switch (g_app_state.current_state) {
         case STATE_MIXER_VIEW:
             // Draw mixer interface on bottom screen
-            fill_rect(10, 20, 310, 220, COLOR_DARK_GRAY, 1);
-            menu_draw_text_simple(15, 25, "Mixer (F2)", COLOR_WHITE);
+            mixer_render_screen(&g_app_state);
             break;
         case STATE_MENU:
             // Draw main menu
