@@ -77,26 +77,93 @@ Code Section:    {h['text_size']:,} bytes
 """
 
 def create_test_framebuffer():
-    """Crea un'immagine di test che rappresenta il framebuffer del 3DS"""
+    """Simula i veri schermi del 3DS: Top (400x240) + Bottom (320x240)"""
     
-    # 3DS screen: 400x240 RGB565
-    width, height = 400, 240
+    # Dimensioni schermi 3DS
+    top_width, top_height = 400, 240
+    bottom_width, bottom_height = 320, 240
     
-    # Crea immagine
-    img = Image.new('RGB', (width, height), color='white')
+    # Crea immagine composita (mostra entrambi gli schermi)
+    # Top screen in alto, bottom screen in basso con spazio tra loro
+    total_width = max(top_width, bottom_width) + 20  # +20 per bordi
+    total_height = top_height + bottom_height + 30  # +30 per spazio e bordi
+    
+    img = Image.new('RGB', (total_width, total_height), color='#222222')
     draw = ImageDraw.Draw(img)
     
-    # Disegna rettangoli colorati (come fa main.c)
-    draw.rectangle([50, 20, 350, 80], fill='blue')
-    draw.rectangle([50, 100, 350, 160], fill='green')
-    draw.rectangle([100, 180, 300, 220], fill='red')
+    # ===== TOP SCREEN (Step List) =====
+    top_x, top_y = 10, 10
     
-    # Aggiungi testo informativo
-    try:
-        draw.text((20, 10), "3DS Homebrew App Test", fill='black')
-        draw.text((20, 240-30), "Testing on macOS", fill='black')
-    except:
-        pass  # Se non ha font
+    # Sfondo top screen
+    draw.rectangle([top_x, top_y, top_x + top_width - 1, top_y + top_height - 1], 
+                   outline='#00FF00', fill='#001100', width=2)
+    
+    # Titolo top screen
+    draw.text((top_x + 10, top_y + 5), "STEP LIST - Top Screen (400x240)", fill='#00FF00')
+    
+    # Simula step list (5 steps visibili)
+    step_y = top_y + 25
+    for step in range(1, 6):
+        color = '#00FFFF' if step == 1 else '#00AA00'  # Step 1 selezionato
+        draw.rectangle([top_x + 10, step_y, top_x + 390, step_y + 35], 
+                      outline=color, fill='#002200', width=1)
+        draw.text((top_x + 20, step_y + 10), f"Step {step}", fill=color)
+        step_y += 40
+    
+    # ===== BOTTOM SCREEN (Mixer) =====
+    bottom_x, bottom_y = 10, top_height + 25
+    
+    # Sfondo bottom screen
+    draw.rectangle([bottom_x, bottom_y, bottom_x + bottom_width - 1, bottom_y + bottom_height - 1], 
+                   outline='#FF0000', fill='#110000', width=2)
+    
+    # Titolo bottom screen
+    draw.text((bottom_x + 10, bottom_y + 5), "MIXER - Bottom Screen (320x240)", fill='#FF0000')
+    
+    # Barra superiore (step info)
+    draw.rectangle([bottom_x + 5, bottom_y + 25, bottom_x + 315, bottom_y + 40], 
+                  fill='#000000')
+    draw.text((bottom_x + 10, bottom_y + 27), "Step: 1 | IP: 192.168.1.100", fill='#FFFFFF')
+    
+    # Simula 16 canali mixer
+    # 16 canali su una riga, ciascuno largo ~18px
+    channels_y = bottom_y + 50
+    channel_width = 18
+    
+    for ch in range(16):
+        ch_x = bottom_x + 10 + (ch * channel_width)
+        
+        # Colore canale (selezionato = ciano)
+        ch_color = '#00FFFF' if ch == 0 else '#00FF00'
+        
+        # Disegna bordo canale
+        draw.rectangle([ch_x, channels_y, ch_x + 16, channels_y + 120], 
+                      outline=ch_color, fill='#001100', width=1)
+        
+        # Numero canale
+        draw.text((ch_x + 4, channels_y + 5), f"{ch+1:02d}", fill=ch_color)
+        
+        # Simula fader (barra verticale)
+        fader_level = 75 if ch == 0 else 50  # Ch 0 selezionato a 75%
+        fader_height = int(80 * (100 - fader_level) / 100)
+        fader_top = channels_y + 25
+        
+        # Sfondo fader
+        draw.rectangle([ch_x + 3, fader_top, ch_x + 13, fader_top + 80], 
+                      fill='#001100', outline='#444444', width=1)
+        # Fader handle
+        draw.rectangle([ch_x + 2, fader_top + fader_height, ch_x + 14, fader_top + fader_height + 8], 
+                      fill=ch_color)
+        
+        # Pulsante Mute (M)
+        draw.rectangle([ch_x + 3, channels_y + 110, ch_x + 13, channels_y + 120], 
+                      fill='#330000', outline='#FF6666', width=1)
+    
+    # Barra inferiore (info)
+    draw.rectangle([bottom_x + 5, bottom_y + bottom_height - 25, bottom_x + 315, bottom_y + bottom_height - 5], 
+                  fill='#000000')
+    draw.text((bottom_x + 10, bottom_y + bottom_height - 20), "Ch: 01 | Mute: OFF | EQ: 5 bands", 
+             fill='#FFFF00')
     
     return img
 
@@ -130,13 +197,17 @@ def visualize_3dsx(filepath):
         
         # Crea framebuffer di test
         print("Creating framebuffer visualization...")
+        print("Rendering TOP screen (400x240): STEP LIST")
+        print("Rendering BOTTOM screen (320x240): MIXER with 16 channels")
         fb_img = create_test_framebuffer()
         
         # Salva immagine di preview
         output_path = Path(filepath).parent / "framebuffer_preview.png"
         fb_img.save(output_path)
         print(f"✅ Framebuffer preview saved: {output_path}")
-        print(f"   (This is what your app would display on 3DS)\n")
+        print(f"   Shows BOTH 3DS screens:")
+        print(f"   - TOP: Step List (400x240) with 5 steps")
+        print(f"   - BOTTOM: 16-channel Mixer (320x240) with faders and mute buttons\n")
         
         return True
         
