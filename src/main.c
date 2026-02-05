@@ -2,6 +2,7 @@
 #include "core/constants.h"
 #include "screens/menu_screen.h"
 #include "screens/mixer_screen.h"
+#include "screens/step_list_screen.h"
 #include "storage/show_manager.h"
 
 // Screen buffer
@@ -103,6 +104,8 @@ void render_frame() {
     // Render based on current state
     switch (g_app_state.current_state) {
         case STATE_MIXER_VIEW:
+            // Draw step list on top screen
+            step_list_render_screen(&g_app_state);
             // Draw mixer interface on bottom screen
             mixer_render_screen(&g_app_state);
             break;
