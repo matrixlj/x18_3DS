@@ -5,6 +5,7 @@
 #include "screens/step_list_screen.h"
 #include "storage/show_manager.h"
 #include "osc/osc_client.h"
+#include "ui/touch_input.h"
 
 // Screen buffer
 static unsigned short *fb_top = (unsigned short *)VRAM_BASE;
@@ -14,9 +15,10 @@ static unsigned short *fb_bottom = (unsigned short *)(VRAM_BASE + 0x46500);
 #define LCD_POWERCNT        ((volatile unsigned int*)(0x10202000 + 0x10))
 #define LCD_COLORFILL       ((volatile unsigned int*)(0x10202000 + 0x14))
 
-// Global show manager and OSC client
+// Global show manager, OSC client, and touch input
 static ShowManager *g_show_manager = 0;
 static OSCClient g_osc_client = {0};
+static TouchInputManager g_touch_manager = {0};
 
 // Function prototypes
 void render_frame();
@@ -95,7 +97,17 @@ void handle_dpad_down() {
 }
 
 void handle_input() {
-    // Placeholder - would read from 3DS HID module
+    // In a real implementation, this would read from 3DS HID module
+    // For now, touch input manager is updated with simulated data
+    
+    // Placeholder - actual 3DS HID reading would go here
+    touch_input_update(&g_touch_manager, 0, 0, 0);
+    
+    // Get any touch events that occurred
+    TouchEvent event = touch_input_get_event(&g_touch_manager);
+    
+    // Dispatch touch events to appropriate handlers
+    touch_input_dispatch(&g_app_state, &event);
 }
 
 void render_frame() {
@@ -159,6 +171,9 @@ int main(void) {
     
     // Initialize OSC client (will connect when show is loaded)
     osc_client_init(&g_osc_client, g_app_state.mixer_ip, 10023);
+    
+    // Initialize touch input manager
+    touch_input_init(&g_touch_manager);
     
     // Enable displays
     *LCD_POWERCNT |= 0x01000001;
