@@ -7,6 +7,9 @@
  * - /ch/##/eq/#/q (Q: 0.0-1.0 normalized)
  */
 
+#ifndef OSC_VALIDATION_TESTS_C
+#define OSC_VALIDATION_TESTS_C
+
 #include "../core/state.h"
 #include "../osc/osc_client.h"
 

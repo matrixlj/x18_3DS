@@ -8,13 +8,15 @@
  * - State machine transitions between mixer/menu/EQ
  */
 
+#ifndef INTEGRATION_TESTS_C
+#define INTEGRATION_TESTS_C
+
 #include "../core/state.h"
 #include "../core/constants.h"
 #include "../screens/eq_window.h"
 #include "../storage/show_manager.h"
 #include "../osc/osc_client.h"
 #include "../ui/touch_input.h"
-#include <stdlib.h>
 
 // Test structure
 typedef struct {
@@ -119,7 +121,7 @@ void test_eq_band_parameter_adjustment() {
     
     // Adjust type parameter
     int original_type = test_state.eq_window.bands[0].type;
-    eq_window_cycle_band_type(&test_state.eq_window.bands[0]);
+    eq_window_cycle_band_type(&test_state);
     int new_type = test_state.eq_window.bands[0].type;
     
     assert_true(new_type != original_type || (new_type == 0 && original_type == 5),

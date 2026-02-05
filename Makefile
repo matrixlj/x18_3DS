@@ -17,8 +17,8 @@ CFLAGS = -march=armv5te -mtune=arm946e-s -Wall -O2 -g -ffreestanding
 CFLAGS += -I$(INCLUDES) -I$(LIBCTRU_INCLUDE) -I.
 LDFLAGS = -nostdlib
 
-# File sources - now includes subdirectories
-CSOURCES = $(shell find $(SOURCES) -name "*.c")
+# File sources - now includes subdirectories (exclude tests from binary)
+CSOURCES = $(shell find $(SOURCES) -name "*.c" ! -path "*/tests/*")
 OBJECTS = $(CSOURCES:%.c=$(BUILD)/%.o)
 OUTPUT = $(BUILD)/$(TARGET)
 
