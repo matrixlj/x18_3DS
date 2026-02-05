@@ -33,13 +33,20 @@ typedef struct {
     ChannelState channels[NUM_CHANNELS];
 } StepState;
 
+// EQ Band State (5 bands as per Behringer X18)
+typedef struct {
+    int type;               // 0=LCut, 1=LShv, 2=PEQ, 3=VEQ, 4=HShv, 5=HCut
+    int frequency;          // 20-20000 Hz (stored as integer)
+    int gain;               // -150 to +150 (represents -15.0 to +15.0 dB in 0.1 dB steps)
+    int q;                  // 3-100 (represents 0.3-10.0 in 0.1 steps)
+} EQBandState;
+
 // EQ Window State
 typedef struct {
     int channel_id;
-    float eq_low;
-    float eq_mid;
-    float eq_high;
-    int selected_band;      // 0=Low, 1=Mid, 2=High
+    EQBandState bands[5];   // 5 EQ bands (1-5)
+    int selected_band;      // 0-4 (which band is being edited)
+    int selected_param;     // 0=type, 1=freq, 2=gain, 3=q
 } EQWindowState;
 
 // Menu State

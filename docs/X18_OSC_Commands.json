@@ -1,0 +1,480 @@
+{
+  "commands": [
+    {
+      "category": "Action",
+      "path": "/-action/clearsolo",
+      "type": "i",
+      "range": "1",
+      "values": "",
+      "description": "Clear all solos"
+    },
+    {
+      "category": "Action",
+      "path": "/-action/initall",
+      "type": "i",
+      "range": "1",
+      "values": "",
+      "description": "Initialize console"
+    },
+    {
+      "category": "Action",
+      "path": "/-action/savestate",
+      "type": "i",
+      "range": "1",
+      "values": "",
+      "description": "Save console current state"
+    },
+    {
+      "category": "Action",
+      "path": "/-action/setclock",
+      "type": "s",
+      "range": "",
+      "values": "",
+      "description": "set clock ('20YYMMDDHHMMSS'), ignored on X18/XR18"
+    },
+    {
+      "category": "Channel",
+      "path": "/ch/01/config/name",
+      "type": "s",
+      "range": "",
+      "values": "",
+      "description": "Channel scribble strip name"
+    },
+    {
+      "category": "Channel",
+      "path": "/ch/01/config/color",
+      "type": "i",
+      "range": "0-15",
+      "values": "OFF, RD, GN, YE, BL, MG, CY, WH, OFFi, RDi, GNi, YEi, BLi, MGi, CYi, WHi",
+      "description": "Channel scribble trip color"
+    },
+    {
+      "category": "Channel",
+      "path": "/ch/01/config/insrc",
+      "type": "i",
+      "range": "0-15",
+      "values": "OFF, IN01-16",
+      "description": "Channel input source"
+    },
+    {
+      "category": "Channel",
+      "path": "/ch/01/mix/fader",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "-oo - +10",
+      "description": "Channel fader level"
+    },
+    {
+      "category": "Channel",
+      "path": "/ch/01/mix/on",
+      "type": "i",
+      "range": "0-1",
+      "values": "OFF, ON",
+      "description": "Channel mute"
+    },
+    {
+      "category": "Channel",
+      "path": "/ch/01/mix/pan",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "-100 - +100",
+      "description": "Channel pan value"
+    },
+    {
+      "category": "Channel",
+      "path": "/ch/01/mix/lr",
+      "type": "i",
+      "range": "0-1",
+      "values": "OFF, ON",
+      "description": "Channel LR assignment"
+    },
+    {
+      "category": "Channel",
+      "path": "/ch/01/mix/01/level",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "-oo - +10",
+      "description": "Channel mixbus sends level"
+    },
+    {
+      "category": "Channel",
+      "path": "/ch/01/mix/01/pan",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "-100 - +100",
+      "description": "Channel mixbus sends pan"
+    },
+    {
+      "category": "Channel",
+      "path": "/ch/01/preamp/gain",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "-12 - +60",
+      "description": "Channel preamp gain"
+    },
+    {
+      "category": "Channel",
+      "path": "/ch/01/preamp/hpf",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "20 - 200",
+      "description": "Channel low cut frequency (hz)"
+    },
+    {
+      "category": "Channel",
+      "path": "/ch/01/preamp/hpon",
+      "type": "i",
+      "range": "0-1",
+      "values": "OFF, ON",
+      "description": "Channel low cut off/on"
+    },
+    {
+      "category": "Channel EQ",
+      "path": "/ch/01/eq/on",
+      "type": "i",
+      "range": "0-1",
+      "values": "OFF, ON",
+      "description": "Channel EQ Off/On"
+    },
+    {
+      "category": "Channel EQ",
+      "path": "/ch/01/eq/1/type",
+      "type": "i",
+      "range": "0-5",
+      "values": "LCut, LShv, PEQ, VEQ, HShv, HCut",
+      "description": "Channel EQ band type"
+    },
+    {
+      "category": "Channel EQ",
+      "path": "/ch/01/eq/1/f",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "20 - 20000",
+      "description": "Channel EQ band frequency"
+    },
+    {
+      "category": "Channel EQ",
+      "path": "/ch/01/eq/1/g",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "-15.0 - +15.0",
+      "description": "Channel EQ band gain"
+    },
+    {
+      "category": "Channel EQ",
+      "path": "/ch/01/eq/1/q",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "10.0 - 0.3",
+      "description": "Channel EQ band Q"
+    },
+    {
+      "category": "Channel Gate",
+      "path": "/ch/01/gate/on",
+      "type": "i",
+      "range": "0-1",
+      "values": "OFF, ON",
+      "description": "Channel gate off/on"
+    },
+    {
+      "category": "Channel Gate",
+      "path": "/ch/01/gate/mode",
+      "type": "i",
+      "range": "0-4",
+      "values": "GATE, EXP2, EXP3, EXP4, DUCK",
+      "description": "Channel gate mode"
+    },
+    {
+      "category": "Channel Gate",
+      "path": "/ch/01/gate/thr",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "-80.0 - 0.0",
+      "description": "Channel gate threshold (db)"
+    },
+    {
+      "category": "Channel Gate",
+      "path": "/ch/01/gate/range",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "3.0 - 60.0",
+      "description": "Channel gate range (db)"
+    },
+    {
+      "category": "Channel Gate",
+      "path": "/ch/01/gate/attack",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "0.0 - 120.0",
+      "description": "Channel gate attack (ms)"
+    },
+    {
+      "category": "Channel Gate",
+      "path": "/ch/01/gate/hold",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "0.02 - 2000",
+      "description": "Channel gate hold (ms)"
+    },
+    {
+      "category": "Channel Gate",
+      "path": "/ch/01/gate/release",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "5.0 - 4000.0",
+      "description": "Channel gate release (ms)"
+    },
+    {
+      "category": "Channel Compressor",
+      "path": "/ch/01/dyn/on",
+      "type": "i",
+      "range": "0-1",
+      "values": "OFF, ON",
+      "description": "Channel compressor off/on"
+    },
+    {
+      "category": "Channel Compressor",
+      "path": "/ch/01/dyn/mode",
+      "type": "i",
+      "range": "0-1",
+      "values": "COMP, EXP",
+      "description": "Channel compressor mode"
+    },
+    {
+      "category": "Channel Compressor",
+      "path": "/ch/01/dyn/thr",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "-60.0 - 0.0",
+      "description": "Channel compressor threshold (db)"
+    },
+    {
+      "category": "Channel Compressor",
+      "path": "/ch/01/dyn/ratio",
+      "type": "i",
+      "range": "0-11",
+      "values": "1.1, 1.3, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 7.0, 10, 20, 100",
+      "description": "Channel compressor ratio"
+    },
+    {
+      "category": "Channel Compressor",
+      "path": "/ch/01/dyn/knee",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "0.0 - 5.0",
+      "description": "Channel compressor knee"
+    },
+    {
+      "category": "Channel Compressor",
+      "path": "/ch/01/dyn/mgain",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "0.0 - 24.0",
+      "description": "Channel compressor gain (db)"
+    },
+    {
+      "category": "Channel Compressor",
+      "path": "/ch/01/dyn/attack",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "0.0 - 120.0",
+      "description": "Channel compressor attack (ms)"
+    },
+    {
+      "category": "Channel Compressor",
+      "path": "/ch/01/dyn/hold",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "0.02 - 2000",
+      "description": "Channel compressor hold (ms)"
+    },
+    {
+      "category": "Channel Compressor",
+      "path": "/ch/01/dyn/release",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "5.0 - 4000.0",
+      "description": "Channel compressor release (ms)"
+    },
+    {
+      "category": "Bus",
+      "path": "/bus/1/config/name",
+      "type": "s",
+      "range": "",
+      "values": "",
+      "description": "Mixbus name"
+    },
+    {
+      "category": "Bus",
+      "path": "/bus/1/config/color",
+      "type": "i",
+      "range": "0-15",
+      "values": "OFF, RD, GN, YE, BL, MG, CY, WH, OFFi, RDi, GNi, YEi, BLi, MGi, CYi, WHi",
+      "description": "Mixbus color"
+    },
+    {
+      "category": "Bus",
+      "path": "/bus/1/mix/fader",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "-oo - +10",
+      "description": "Mixbus fader level"
+    },
+    {
+      "category": "Bus",
+      "path": "/bus/1/mix/on",
+      "type": "i",
+      "range": "0-1",
+      "values": "OFF, ON",
+      "description": "Mixbus mute"
+    },
+    {
+      "category": "Main LR",
+      "path": "/lr/config/name",
+      "type": "s",
+      "range": "",
+      "values": "",
+      "description": "Main LR name"
+    },
+    {
+      "category": "Main LR",
+      "path": "/lr/mix/fader",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "-oo - +10",
+      "description": "Main LR fader level"
+    },
+    {
+      "category": "Main LR",
+      "path": "/lr/mix/on",
+      "type": "i",
+      "range": "0-1",
+      "values": "OFF, ON",
+      "description": "Main LR mute"
+    },
+    {
+      "category": "DCA",
+      "path": "/dca/1/config/name",
+      "type": "s",
+      "range": "",
+      "values": "",
+      "description": "DCA name"
+    },
+    {
+      "category": "DCA",
+      "path": "/dca/1/config/color",
+      "type": "i",
+      "range": "0-15",
+      "values": "OFF, RD, GN, YE, BL, MG, CY, WH, OFFi, RDi, GNi, YEi, BLi, MGi, CYi, WHi",
+      "description": "DCA color"
+    },
+    {
+      "category": "DCA",
+      "path": "/dca/1/fader",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "-oo - +10",
+      "description": "DCA fader level"
+    },
+    {
+      "category": "DCA",
+      "path": "/dca/1/on",
+      "type": "i",
+      "range": "0-1",
+      "values": "OFF, ON",
+      "description": "DCA [1..4] Off/On"
+    },
+    {
+      "category": "Headamp",
+      "path": "/headamp/01/gain",
+      "type": "f",
+      "range": "0.0-1.0",
+      "values": "-12 - +60",
+      "description": "Headamp gain"
+    },
+    {
+      "category": "Headamp",
+      "path": "/headamp/01/phantom",
+      "type": "i",
+      "range": "0-1",
+      "values": "OFF, ON",
+      "description": "Headamp phantom Off/On"
+    },
+    {
+      "category": "Config",
+      "path": "/config/chlink/1-2",
+      "type": "i",
+      "range": "0-1",
+      "values": "OFF, ON",
+      "description": "Channel links (odd/even pairs 1-2, 3-4, etc)"
+    },
+    {
+      "category": "Config",
+      "path": "/config/mute/1",
+      "type": "i",
+      "range": "0-1",
+      "values": "OFF, ON",
+      "description": "Mutegroup [1..4] Off/On"
+    },
+    {
+      "category": "Snapshot",
+      "path": "/-snap/index",
+      "type": "i",
+      "range": "1-64",
+      "values": "",
+      "description": "Snapshot (current) list index"
+    },
+    {
+      "category": "Snapshot",
+      "path": "/-snap/load",
+      "type": "i",
+      "range": "1-64",
+      "values": "",
+      "description": "Snapshot (current) load"
+    },
+    {
+      "category": "Snapshot",
+      "path": "/-snap/save",
+      "type": "i",
+      "range": "1-64",
+      "values": "",
+      "description": "Snapshot (current) save"
+    },
+    {
+      "category": "Snapshot",
+      "path": "/-snap/name",
+      "type": "s",
+      "range": "",
+      "values": "",
+      "description": "Snapshot (current) name"
+    },
+    {
+      "category": "Status",
+      "path": "/-stat/solo",
+      "type": "i",
+      "range": "0-1",
+      "values": "OFF, ON",
+      "description": "Solo global status"
+    },
+    {
+      "category": "Status",
+      "path": "/-stat/solosw/01",
+      "type": "i",
+      "range": "0-1",
+      "values": "OFF, ON",
+      "description": "Solo switch [01..20] status"
+    }
+  ],
+  "notes": {
+    "channel_range": "Channels are numbered 01-16",
+    "bus_range": "Buses are numbered 1-6 (FX1-FX4 are buses 7-10)",
+    "dca_range": "DCAs are numbered 1-4",
+    "headamp_range": "Headamps are numbered 01-16",
+    "type_legend": {
+      "i": "integer",
+      "f": "float (0.0-1.0)",
+      "s": "string"
+    },
+    "color_values": "0=OFF, 1=RD, 2=GN, 3=YE, 4=BL, 5=MG, 6=CY, 7=WH, 8=OFFi, 9=RDi, 10=GNi, 11=YEi, 12=BLi, 13=MGi, 14=CYi, 15=WHi"
+  }
+}

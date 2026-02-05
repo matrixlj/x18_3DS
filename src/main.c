@@ -3,6 +3,7 @@
 #include "screens/menu_screen.h"
 #include "screens/mixer_screen.h"
 #include "screens/step_list_screen.h"
+#include "screens/eq_window.h"
 #include "storage/show_manager.h"
 #include "osc/osc_client.h"
 #include "ui/touch_input.h"
@@ -140,9 +141,9 @@ void render_frame() {
             menu_render_ip_config(&g_app_state);
             break;
         case STATE_EQ_WINDOW:
-            // Draw EQ window
-            fill_rect(30, 30, 290, 210, COLOR_GRAY, 1);
-            menu_draw_text_simple(40, 40, "EQ Window", COLOR_WHITE);
+            // Draw mixer on top screen, EQ window on bottom
+            step_list_render_screen(&g_app_state);
+            eq_window_render_screen(&g_app_state);
             break;
         default:
             break;
