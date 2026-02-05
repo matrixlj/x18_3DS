@@ -1,5 +1,7 @@
 #include "core/state.h"
 #include "core/constants.h"
+#include "screens/menu_screen.h"
+#include "storage/show_manager.h"
 
 // Screen buffer
 static unsigned short *fb_top = (unsigned short *)VRAM_BASE;
@@ -8,6 +10,9 @@ static unsigned short *fb_bottom = (unsigned short *)(VRAM_BASE + 0x46500);
 // Hardware registers
 #define LCD_POWERCNT        ((volatile unsigned int*)(0x10202000 + 0x10))
 #define LCD_COLORFILL       ((volatile unsigned int*)(0x10202000 + 0x14))
+
+// Global show manager
+static ShowManager *g_show_manager = 0;
 
 // Function prototypes
 void render_frame();
@@ -97,16 +102,30 @@ void render_frame() {
     // Render based on current state
     switch (g_app_state.current_state) {
         case STATE_MIXER_VIEW:
-            // Draw mixer interface
+            // Draw mixer interface on bottom screen
             fill_rect(10, 20, 310, 220, COLOR_DARK_GRAY, 1);
+            menu_draw_text_simple(15, 25, "Mixer (F2)", COLOR_WHITE);
             break;
         case STATE_MENU:
-            // Draw menu
-            fill_rect(50, 50, 270, 190, COLOR_GRAY, 1);
+            // Draw main menu
+            menu_render_main(&g_app_state);
+            break;
+        case STATE_LOADING_SHOW:
+            // Draw load show dialog
+            menu_render_load_show(&g_app_state);
+            break;
+        case STATE_CREATE_SHOW:
+            // Draw create show dialog
+            menu_render_create_show(&g_app_state);
+            break;
+        case STATE_IP_CONFIG:
+            // Draw IP config dialog
+            menu_render_ip_config(&g_app_state);
             break;
         case STATE_EQ_WINDOW:
             // Draw EQ window
             fill_rect(30, 30, 290, 210, COLOR_GRAY, 1);
+            menu_draw_text_simple(40, 40, "EQ Window", COLOR_WHITE);
             break;
         default:
             break;
@@ -130,11 +149,15 @@ int main(void) {
     // Initialize application state
     state_init();
     
+    // Initialize show manager
+    g_show_manager = show_manager_init();
+    
     // Enable displays
     *LCD_POWERCNT |= 0x01000001;
     
-    // Set initial state
-    state_set_state(STATE_MIXER_VIEW);
+    // Set initial state to menu
+    state_set_state(STATE_MENU);
+    g_app_state.menu.selected_option = 0;
     
     // Main loop
     int frame_count = 0;
@@ -167,5 +190,7 @@ int main(void) {
 }
 
 void cleanup() {
-    // Cleanup code
+    if (g_show_manager) {
+        show_manager_cleanup(g_show_manager);
+    }
 }
