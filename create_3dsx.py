@@ -115,11 +115,31 @@ def create_3dsx(elf_path, output_path, title="Homebrew"):
         print(f"Error: {elf_path} not found")
         return False
     
+    # Extract binary code from ELF using objcopy
+    bin_path = elf_file.with_suffix('.bin')
+    import subprocess
+    
     try:
-        with open(elf_file, 'rb') as f:
+        # Convert ELF to raw binary
+        result = subprocess.run(
+            ['arm-none-eabi-objcopy', '-O', 'binary', str(elf_file), str(bin_path)],
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode != 0:
+            print(f"Error extracting binary: {result.stderr}")
+            return False
+        
+        # Read the binary
+        with open(bin_path, 'rb') as f:
             code_data = f.read()
+        
+        # Clean up the temporary binary file
+        bin_path.unlink()
+        
     except Exception as e:
-        print(f"Error reading ELF: {e}")
+        print(f"Error converting ELF to binary: {e}")
         return False
     
     # Create SMDH metadata

@@ -1,5 +1,5 @@
 build/
-*.elf
+ToDel/
 *.nds
 *.o
 *.d
