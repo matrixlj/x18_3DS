@@ -34,6 +34,7 @@ $(TARGET).elf: $(OFILES)
 
 $(TARGET).3dsx: $(TARGET).elf
 	@echo "📦 Creating 3DSX with metadata..."
+	@echo "   Command: 3dsxtool $< $@ --smdh=gfx/icon.smdh --romfs=$(ROMFS_DIR)"
 	@3dsxtool $< $@ --smdh=gfx/icon.smdh --romfs=$(ROMFS_DIR)
 	@echo "✅ Built: $(TARGET).3dsx"
 	@ls -lh $(TARGET).3dsx

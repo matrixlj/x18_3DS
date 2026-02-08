@@ -593,39 +593,45 @@ void init_graphics(void)
     g_textBuf = C2D_TextBufNew(2048);
     
     // Load fader sprite sheets from /gfx/ (embedded in romfs)
-    printf("[DEBUG] Attempting to load spritesheets from romfs:/gfx/\n");
+    printf("[DEBUG] Attempting to load spritesheets from romfs:/\n");
     
-    // List contents of gfx directory to verify romfs is mounted correctly
-    DIR* dir = opendir("romfs:/gfx/");
+    // List contents of root directory to verify romfs is mounted and see what's there
+    DIR* dir = opendir("romfs:/");
     if (dir) {
         struct dirent* entry;
-        printf("[DEBUG] Contents of romfs:/gfx/:\n");
+        printf("[DEBUG] Contents of romfs:/:\n");
         while ((entry = readdir(dir)) != NULL) {
             printf("[DEBUG]   - %s\n", entry->d_name);
         }
         closedir(dir);
     } else {
-        printf("[DEBUG] ERROR: Could not open romfs:/gfx/ directory\n");
+        printf("[DEBUG] ERROR: Could not open romfs:/ directory\n");
     }
     
-    // Load grip sprite sheet
-    g_grip_sheet = C2D_SpriteSheetLoad("romfs:/gfx/Grip.t3x");
+    // Try both possible paths: romfs:/gfx/ and romfs:/ (3dsxtool might put files in root)
+    g_grip_sheet = C2D_SpriteSheetLoad("romfs:/Grip.t3x");
+    if (!g_grip_sheet) {
+        g_grip_sheet = C2D_SpriteSheetLoad("romfs:/gfx/Grip.t3x");
+    }
     if (g_grip_sheet) {
         g_grip_img = C2D_SpriteSheetGetImage(g_grip_sheet, 0);
         g_grip_loaded = 1;
         printf("[DEBUG] Successfully loaded Grip.t3x\n");
     } else {
-        printf("[DEBUG] Failed to load Grip.t3x\n");
+        printf("[DEBUG] Failed to load Grip.t3x from both paths\n");
     }
     
     // Load fader background sprite sheet
-    g_fader_sheet = C2D_SpriteSheetLoad("romfs:/gfx/FaderBkg.t3x");
+    g_fader_sheet = C2D_SpriteSheetLoad("romfs:/FaderBkg.t3x");
+    if (!g_fader_sheet) {
+        g_fader_sheet = C2D_SpriteSheetLoad("romfs:/gfx/FaderBkg.t3x");
+    }
     if (g_fader_sheet) {
         g_fader_bkg = C2D_SpriteSheetGetImage(g_fader_sheet, 0);
         g_fader_loaded = 1;
         printf("[DEBUG] Successfully loaded FaderBkg.t3x\n");
     } else {
-        printf("[DEBUG] Failed to load FaderBkg.t3x\n");
+        printf("[DEBUG] Failed to load FaderBkg.t3x from both paths\n");
     }
     
     g_romfs_mounted = 1;
