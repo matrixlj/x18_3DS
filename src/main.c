@@ -569,6 +569,10 @@ void update_touch_input(void)
 void init_graphics(void)
 {
     gfxInitDefault();
+    
+    // Mount RomFS for loading embedded assets (required before accessing romfs:/)
+    romfsInit();
+    
     C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
     C2D_Init(C2D_DEFAULT_MAX_OBJECTS);
     C2D_Prepare();
@@ -623,6 +627,10 @@ void cleanup_graphics(void)
     }
     C2D_Fini();
     C3D_Fini();
+    
+    // Unmount RomFS
+    romfsExit();
+    
     gfxExit();
 }
 
