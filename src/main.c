@@ -56,18 +56,42 @@ typedef struct {
 // PRESET/SHOW DEFINITIONS
 // ============================================================================
 
+// EQ Filter Types
+typedef enum {
+    EQ_LCUT,   // Low Cut (High-Pass)
+    EQ_LSHV,   // Low Shelf
+    EQ_PEQ,    // Peaking EQ
+    EQ_VPEQ,   // Vintage/Variable PEQ
+    EQ_HSHV    // High Shelf
+} EQFilterType;
+
+// Single EQ Band
+typedef struct {
+    float frequency;      // Hz (20-20000)
+    float gain;           // dB (-15 to +15)
+    float q_factor;       // 0.3 to 10.0
+    EQFilterType type;    // Filter type
+} __attribute__((packed)) EQBand;
+
+// EQ Settings for a single channel
+typedef struct {
+    EQBand bands[5];      // 5 parametric bands
+    int enabled;          // 0=disabled, 1=enabled
+} __attribute__((packed)) ChannelEQ;
+
 typedef struct {
     char name[32];
     float volumes[16];
     int mutes[16];
-    int eqs[16];
-} Step;
+    ChannelEQ eqs[16];    // EQ settings per channel
+} __attribute__((packed)) Step;
 
 typedef struct {
     char name[64];
     Step steps[200];
     int num_steps;
-} Show;
+    int magic;  // Magic number for validation: 0x58334D32 ('X', '3', '4', 'M') = X34M = X18Mix ver 2
+} __attribute__((packed)) Show;
 
 // ============================================================================
 // GLOBAL STATE
@@ -106,6 +130,7 @@ int g_wasTouched = 0;
 Show g_current_show;
 int g_show_loaded = 0;
 int g_selected_step = 0;
+int g_init_complete = 0;  // Set to 1 after full initialization complete
 
 // Show Manager state
 int g_app_mode = APP_MODE_MIXER;
@@ -131,6 +156,12 @@ int g_should_exit = 0;  // Set to 1 to signal app should close
 char g_save_status[128] = "Ready";
 int g_save_status_timer = 0;
 
+// EQ Window state
+int g_eq_window_open = 0;           // 0=closed, 1=open
+int g_eq_editing_channel = 0;       // Current channel being edited (0-15)
+int g_eq_selected_band = 0;         // Current band being edited (0-4)
+int g_eq_param_selected = 0;        // 0=freq, 1=gain, 2=q (which param is focused)
+
 // ============================================================================
 // FUNCTION PROTOTYPES
 // ============================================================================
@@ -145,8 +176,50 @@ void duplicate_step(void);
 // SHOW/PRESET FUNCTIONS
 // ============================================================================
 
+// Initialize EQ with default values
+void init_channel_eq(ChannelEQ *eq)
+{
+    eq->enabled = 0;  // EQ disabled by default
+    
+    // Band 0: 64Hz Low Cut
+    eq->bands[0].frequency = 64.0f;
+    eq->bands[0].gain = 0.0f;
+    eq->bands[0].q_factor = 0.5f;
+    eq->bands[0].type = EQ_LCUT;
+    
+    // Band 1: 200Hz Peaking EQ
+    eq->bands[1].frequency = 200.0f;
+    eq->bands[1].gain = 0.0f;
+    eq->bands[1].q_factor = 5.0f;
+    eq->bands[1].type = EQ_PEQ;
+    
+    // Band 2: 500Hz Peaking EQ
+    eq->bands[2].frequency = 500.0f;
+    eq->bands[2].gain = 0.0f;
+    eq->bands[2].q_factor = 5.0f;
+    eq->bands[2].type = EQ_PEQ;
+    
+    // Band 3: 1200Hz Peaking EQ
+    eq->bands[3].frequency = 1200.0f;
+    eq->bands[3].gain = 0.0f;
+    eq->bands[3].q_factor = 5.0f;
+    eq->bands[3].type = EQ_PEQ;
+    
+    // Band 4: 4500Hz High Shelf
+    eq->bands[4].frequency = 4500.0f;
+    eq->bands[4].gain = 0.0f;
+    eq->bands[4].q_factor = 0.5f;
+    eq->bands[4].type = EQ_HSHV;
+}
+
 void init_default_show(void)
 {
+    // CRITICAL: Initialize entire Show structure to zero FIRST
+    memset(&g_current_show, 0, sizeof(Show));
+    
+    // Magic number for validation
+    g_current_show.magic = 0x58334D32;  // "X34M" in hex - version identifier
+    
     // Try to load last saved show from persistence
     FILE *f = fopen("/3ds/x18mixer/last_show.txt", "r");
     if (f) {
@@ -178,7 +251,7 @@ void init_default_show(void)
         for (int i = 0; i < 16; i++) {
             g_current_show.steps[s].volumes[i] = 0.5f;
             g_current_show.steps[s].mutes[i] = 0;
-            g_current_show.steps[s].eqs[i] = 0;
+            init_channel_eq(&g_current_show.steps[s].eqs[i]);
         }
     }
     g_show_loaded = 1;
@@ -188,6 +261,12 @@ void init_default_show(void)
 void init_new_show(const char *name)
 {
     // Initialize a brand new show with default 3 steps
+    // CRITICAL: Initialize entire Show structure to zero FIRST
+    memset(&g_current_show, 0, sizeof(Show));
+    
+    // Magic number for validation
+    g_current_show.magic = 0x58334D32;
+    
     strcpy(g_current_show.name, name);
     g_current_show.num_steps = 3;
     
@@ -197,7 +276,7 @@ void init_new_show(const char *name)
         for (int i = 0; i < 16; i++) {
             g_current_show.steps[s].volumes[i] = 0.5f;
             g_current_show.steps[s].mutes[i] = 0;
-            g_current_show.steps[s].eqs[i] = 0;
+            init_channel_eq(&g_current_show.steps[s].eqs[i]);
         }
     }
     g_show_loaded = 1;
@@ -207,13 +286,15 @@ void init_new_show(const char *name)
 
 void apply_step_to_faders(int step_idx)
 {
+    // Safety: Protect from uninitialized access
+    if (!g_init_complete) return;
     if (step_idx < 0 || step_idx >= g_current_show.num_steps) return;
     
     Step *step = &g_current_show.steps[step_idx];
     for (int i = 0; i < 16; i++) {
         g_faders[i].value = step->volumes[i];
         g_faders[i].muted = step->mutes[i];
-        g_faders[i].eq_enabled = step->eqs[i];
+        g_faders[i].eq_enabled = step->eqs[i].enabled;  // Get enabled flag from ChannelEQ
     }
     g_selected_step = step_idx;
 }
@@ -226,7 +307,7 @@ void save_step_from_faders(int step_idx)
     for (int i = 0; i < 16; i++) {
         step->volumes[i] = g_faders[i].value;
         step->mutes[i] = g_faders[i].muted;
-        step->eqs[i] = g_faders[i].eq_enabled;
+        step->eqs[i].enabled = g_faders[i].eq_enabled;  // Save enabled flag to ChannelEQ
     }
 }
 
@@ -248,7 +329,7 @@ void add_step(void)
     for (int i = 0; i < 16; i++) {
         new_step->volumes[i] = 0.5f;
         new_step->mutes[i] = 0;
-        new_step->eqs[i] = 0;
+        init_channel_eq(&new_step->eqs[i]);
     }
     
     g_current_show.num_steps++;
@@ -367,6 +448,11 @@ void save_show_to_file(Show *show)
     
     create_shows_directory();
     
+    // Ensure magic number is set BEFORE saving
+    if (show->magic != 0x58334D32) {
+        show->magic = 0x58334D32;
+    }
+    
     // Sanitize the show name for use as a filename
     char safe_name[64];
     sanitize_filename(show->name, safe_name, sizeof(safe_name));
@@ -411,11 +497,54 @@ void save_show_to_file(Show *show)
     }
 }
 
+// Old format structures (for backward compatibility)
+typedef struct {
+    char name[32];
+    float volumes[16];
+    int mutes[16];
+    int eqs_old[16];  // OLD: was just an int flag
+} __attribute__((packed)) OldStep;
+
+typedef struct {
+    char name[64];
+    OldStep steps_old[200];
+    int num_steps;
+} __attribute__((packed)) OldShow;
+
+// Convert old show format to new format
+void migrate_old_show_to_new(OldShow *old, Show *new_show)
+{
+    // CRITICAL: Initialize entire structure to zero first
+    memset(new_show, 0, sizeof(Show));
+    
+    strcpy(new_show->name, old->name);
+    new_show->num_steps = old->num_steps;
+    if (new_show->num_steps > 200) new_show->num_steps = 200;  // Sanity check
+    if (new_show->num_steps < 1) new_show->num_steps = 1;      // At least 1 step
+    
+    for (int s = 0; s < new_show->num_steps; s++) {
+        strcpy(new_show->steps[s].name, old->steps_old[s].name);
+        
+        for (int i = 0; i < 16; i++) {
+            new_show->steps[s].volumes[i] = old->steps_old[s].volumes[i];
+            new_show->steps[s].mutes[i] = old->steps_old[s].mutes[i];
+            
+            // Initialize new EQ structure
+            init_channel_eq(&new_show->steps[s].eqs[i]);
+            // Set enabled flag from old format
+            new_show->steps[s].eqs[i].enabled = old->steps_old[s].eqs_old[i];
+        }
+    }
+}
+
 int load_show_from_file(const char *filename, Show *out_show)
 {
     if (!filename || !out_show) return 0;
     
     create_shows_directory();
+    
+    // CRITICAL: Initialize entire Show structure to zero BEFORE loading
+    memset(out_show, 0, sizeof(Show));
     
     char filepath[256];
     snprintf(filepath, sizeof(filepath), "%s%s.x18s", SHOWS_DIR, filename);
@@ -423,12 +552,93 @@ int load_show_from_file(const char *filename, Show *out_show)
     FILE *f = fopen(filepath, "rb");
     if (!f) return 0;
     
-    // Read the show struct
+    // Get file size to detect format version
+    fseek(f, 0, SEEK_END);
+    long file_size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    
+    // Calculate expected size
+    long expected_new_size = sizeof(Show);
+    
+    // Old format size: ~44868 bytes (64 + 200*224 + 4)
+    // New format size: ~300868 bytes (64 + 200*1504 + 4)
+    
+    // Check if this looks like old format by file size
+    if (file_size < 100000) {  // Conservatively assume < 100KB is old format
+        // Allocate old show on HEAP to avoid stack overflow
+        OldShow *old_show = (OldShow*)malloc(sizeof(OldShow));
+        if (!old_show) {
+            fclose(f);
+            return 0;
+        }
+        
+        memset(old_show, 0, sizeof(OldShow));
+        size_t read = fread(old_show, sizeof(OldShow), 1, f);
+        fclose(f);
+        
+        if (read == 1 && old_show->num_steps > 0 && old_show->num_steps <= 200) {
+            // Successfully loaded as old format, migrate to new
+            migrate_old_show_to_new(old_show, out_show);
+            free(old_show);
+            return 1;
+        }
+        // If migration failed, keep the zero-initialized structure
+        free(old_show);
+        return 0;
+    }
+    
+    // Load as new format - but first verify file size matches expected
+    if (file_size != expected_new_size) {
+        // File size mismatch - likely corrupted or compiled with different struct sizes
+        fclose(f);
+        return 0;
+    }
+    
     size_t read = fread(out_show, sizeof(Show), 1, f);
     fclose(f);
     
-    // Ensure we read the complete structure
-    return (read == 1) ? 1 : 0;
+    // Verify loaded data is sane
+    if (read != 1) return 0;
+    
+    // Comprehensive validation of loaded data
+    if (out_show->num_steps < 1 || out_show->num_steps > 200) {
+        // Invalid step count
+        memset(out_show, 0, sizeof(Show));
+        return 0;
+    }
+    
+    // Check magic number - but be tolerant of old files (magic == 0)
+    // Only fail if magic is non-zero AND not our expected value
+    if (out_show->magic != 0 && out_show->magic != 0x58334D32) {
+        // File header is corrupted
+        memset(out_show, 0, sizeof(Show));
+        return 0;
+    }
+    
+    // If magic is 0, set it now (was an old file)
+    if (out_show->magic == 0) {
+        out_show->magic = 0x58334D32;
+    }
+    
+    // Additional sanity checks on first step
+    Step *first_step = &out_show->steps[0];
+    
+    // Check that volumes are in valid range
+    for (int i = 0; i < 16; i++) {
+        if (first_step->volumes[i] < 0.0f || first_step->volumes[i] > 1.0f) {
+            // Volume out of range - data corrupted
+            memset(out_show, 0, sizeof(Show));
+            return 0;
+        }
+        // Check that mutes are 0 or 1
+        if (first_step->mutes[i] != 0 && first_step->mutes[i] != 1) {
+            // Invalid mute value
+            memset(out_show, 0, sizeof(Show));
+            return 0;
+        }
+    }
+    
+    return 1;
 }
 
 void list_available_shows(void)
@@ -534,9 +744,18 @@ int touch_hits_eq_button(touchPosition touch, Fader *fader)
             touch.py >= 5 && touch.py <= 22);
 }
 
+// Forward declarations for touch handlers
+void update_eq_touch(void);
+
 void update_mixer_touch(void)
 {
     if (!g_isTouched) return;
+    
+    // If EQ window is open, handle EQ touch input instead
+    if (g_eq_window_open) {
+        update_eq_touch();
+        return;
+    }
     
     int touch_edge = g_isTouched && !g_wasTouched;
     
@@ -553,9 +772,171 @@ void update_mixer_touch(void)
             }
             
             if (touch_hits_eq_button(g_touchPos, &g_faders[i])) {
-                g_faders[i].eq_enabled = 1 - g_faders[i].eq_enabled;
+                // Open EQ window for this channel
+                g_eq_window_open = 1;
+                g_eq_editing_channel = i;
+                g_eq_selected_band = 0;
+                g_eq_param_selected = 0;
             }
         }
+    }
+}
+
+// Handle touch input in EQ window
+void update_eq_touch(void)
+{
+    if (g_selected_step < 0 || g_selected_step >= g_current_show.num_steps) {
+        g_eq_window_open = 0;
+        return;
+    }
+    if (g_eq_editing_channel < 0 || g_eq_editing_channel >= 16) {
+        g_eq_window_open = 0;
+        return;
+    }
+    
+    int touch_edge = g_isTouched && !g_wasTouched;
+    
+    ChannelEQ *eq = &g_current_show.steps[g_selected_step].eqs[g_eq_editing_channel];
+    
+    // Check if touched ENABLE/DISABLE button (x=80, y=3, w=60, h=12)
+    if (touch_edge && g_touchPos.px >= 80 && g_touchPos.px < 140 &&
+        g_touchPos.py >= 3 && g_touchPos.py < 15) {
+        eq->enabled = 1 - eq->enabled;
+        return;  // Don't process other touches this frame
+    }
+    
+    // Check if touched a band info row to select it
+    // Band rows: y=145 + b*19, each h=19
+    for (int b = 0; b < 5; b++) {
+        int band_y = 145 + (b * 19);
+        if (touch_edge && g_touchPos.px >= 0 && g_touchPos.px < SCREEN_WIDTH_BOT &&
+            g_touchPos.py >= band_y && g_touchPos.py < (band_y + 19)) {
+            g_eq_selected_band = b;
+            return;  // Don't process other touches this frame
+        }
+    }
+    
+    // Check if touched in graph area and dragging to adjust parameters
+    // Graph: x=8, y=20, w=240, h=115
+    int graph_x = 8;
+    int graph_y = 20;
+    int graph_w = 240;
+    int graph_h = 115;
+    
+    if (g_touchPos.px >= graph_x && g_touchPos.px < (graph_x + graph_w) &&
+        g_touchPos.py >= graph_y && g_touchPos.py < (graph_y + graph_h)) {
+        
+        // Touch in graph area - adjust frequency and gain based on position
+        EQBand *band = &eq->bands[g_eq_selected_band];
+        
+        // Horizontal position determines frequency (log scale)
+        float log_pos = (float)(g_touchPos.px - graph_x) / (float)graph_w;
+        float new_freq = 20.0f * powf(20000.0f / 20.0f, log_pos);
+        
+        // Clamp frequency to reasonable range
+        if (new_freq < 20.0f) new_freq = 20.0f;
+        if (new_freq > 20000.0f) new_freq = 20000.0f;
+        band->frequency = new_freq;
+        
+        // Vertical position determines gain (-15 to +15 dB range)
+        int center_y = graph_y + graph_h / 2;
+        float norm_pos = (float)(center_y - g_touchPos.py) / (float)(graph_h / 2);
+        float new_gain = norm_pos * 15.0f;  // Maps to range [-15, +15]
+        
+        // Clamp gain
+        if (new_gain < -15.0f) new_gain = -15.0f;
+        if (new_gain > 15.0f) new_gain = 15.0f;
+        band->gain = new_gain;
+        
+        return;
+    }
+}
+
+void handle_eq_input(u32 kDown, u32 kHeld)
+{
+    // Bounds checking - close window if indices become invalid
+    if (g_selected_step < 0 || g_selected_step >= g_current_show.num_steps) {
+        g_eq_window_open = 0;
+        return;
+    }
+    if (g_eq_editing_channel < 0 || g_eq_editing_channel >= 16) {
+        g_eq_window_open = 0;
+        return;
+    }
+    
+    // D-Pad: Navigate between bands and parameters
+    if (kDown & KEY_DUP) {
+        // Up: Move to previous band
+        g_eq_selected_band--;
+        if (g_eq_selected_band < 0) g_eq_selected_band = 4;
+        g_eq_param_selected = 0;  // Reset to freq parameter
+    }
+    if (kDown & KEY_DDOWN) {
+        // Down: Move to next band
+        g_eq_selected_band++;
+        if (g_eq_selected_band >= 5) g_eq_selected_band = 0;
+        g_eq_param_selected = 0;  // Reset to freq parameter
+    }
+    if (kDown & KEY_DLEFT) {
+        // Left: Previous parameter (freq <- gain <- q)
+        g_eq_param_selected--;
+        if (g_eq_param_selected < 0) g_eq_param_selected = 2;
+    }
+    if (kDown & KEY_DRIGHT) {
+        // Right: Next parameter (freq -> gain -> q)
+        g_eq_param_selected++;
+        if (g_eq_param_selected >= 3) g_eq_param_selected = 0;
+    }
+    
+    ChannelEQ *eq = &g_current_show.steps[g_selected_step].eqs[g_eq_editing_channel];
+    EQBand *band = &eq->bands[g_eq_selected_band];
+    
+    // L button helper: modify parameters with D-Pad
+    if (kHeld & KEY_L) {
+        if (kDown & KEY_DUP) {
+            // Increase parameter value
+            if (g_eq_param_selected == 0) {
+                // Frequency: increase by 1% or 50 Hz minimum
+                band->frequency *= 1.05f;
+                if (band->frequency > 20000.0f) band->frequency = 20000.0f;
+            } else if (g_eq_param_selected == 1) {
+                // Gain: increase by 0.5 dB
+                band->gain += 0.5f;
+                if (band->gain > 15.0f) band->gain = 15.0f;
+            } else if (g_eq_param_selected == 2) {
+                // Q: increase by 0.1
+                band->q_factor += 0.1f;
+                if (band->q_factor > 10.0f) band->q_factor = 10.0f;
+            }
+        }
+        if (kDown & KEY_DDOWN) {
+            // Decrease parameter value
+            if (g_eq_param_selected == 0) {
+                // Frequency: decrease by ~5%
+                band->frequency /= 1.05f;
+                if (band->frequency < 20.0f) band->frequency = 20.0f;
+            } else if (g_eq_param_selected == 1) {
+                // Gain: decrease by 0.5 dB
+                band->gain -= 0.5f;
+                if (band->gain < -15.0f) band->gain = -15.0f;
+            } else if (g_eq_param_selected == 2) {
+                // Q: decrease by 0.1
+                band->q_factor -= 0.1f;
+                if (band->q_factor < 0.3f) band->q_factor = 0.3f;
+            }
+        }
+    }
+    
+    // A: Toggle EQ enabled/disabled for current channel
+    if (kDown & KEY_A) {
+        eq->enabled = 1 - eq->enabled;
+    }
+    
+    // B: Close EQ window
+    if (kDown & KEY_B) {
+        g_eq_window_open = 0;
+        save_step_from_faders(g_selected_step);
+        save_show_to_file(&g_current_show);
     }
 }
 
@@ -570,6 +951,22 @@ void update_touch_input(void)
 // ============================================================================
 // GRAPHICS FUNCTIONS
 // ============================================================================
+
+// Forward declarations
+void render_eq_window(void);
+
+// Helper function to get filter type name
+const char* get_filter_type_name(EQFilterType type)
+{
+    switch(type) {
+        case EQ_LCUT: return "LCut";
+        case EQ_LSHV: return "Lshv";
+        case EQ_PEQ:  return "PEQ";
+        case EQ_VPEQ: return "VPEQ";
+        case EQ_HSHV: return "HShv";
+        default: return "???";
+    }
+}
 
 void init_graphics(void)
 {
@@ -638,11 +1035,17 @@ void init_graphics(void)
     
     init_mixer();
     init_default_show();
-    apply_step_to_faders(0);
     
     // Test filesystem on startup
     test_filesystem_write();
     g_save_status_timer = 180;  // Show for 3 seconds on startup
+    
+    // CRITICAL: Mark initialization as complete - rendering is now safe
+    // Must be set BEFORE calling apply_step_to_faders
+    g_init_complete = 1;
+    
+    // Now safe to apply step to faders
+    apply_step_to_faders(0);
 }
 
 void cleanup_graphics(void)
@@ -714,6 +1117,13 @@ void draw_3d_button(float x, float y, float w, float h, u32 color_main, u32 colo
 
 void render_top_screen(void)
 {
+    // Safety: Don't render if not fully initialized
+    if (!g_init_complete) {
+        C2D_TargetClear(g_topScreen.target, 0x000000FF);
+        C2D_SceneBegin(g_topScreen.target);
+        return;
+    }
+    
     u32 clrBgDark = C2D_Color32(0x1A, 0x1A, 0x1A, 0xFF);
     u32 clrBgMid = C2D_Color32(0x25, 0x25, 0x25, 0xFF);
     u32 clrBorder = C2D_Color32(0x50, 0x50, 0x50, 0xFF);
@@ -725,6 +1135,12 @@ void render_top_screen(void)
     
     C2D_TargetClear(g_topScreen.target, clrBgDark);
     C2D_SceneBegin(g_topScreen.target);
+    
+    // If EQ window is open, render it instead of normal mixer UI
+    if (g_eq_window_open) {
+        render_eq_window();
+        return;
+    }
     
     if (g_app_mode == APP_MODE_MIXER) {
         if (g_creating_new_show) {
@@ -814,6 +1230,180 @@ void render_top_screen(void)
     }
 }
 
+// Calculate EQ response at a specific frequency for a single band
+float calculate_eq_response(EQBand *band, float freq_hz)
+{
+    if (band->frequency <= 0 || band->q_factor <= 0) return 0.0f;
+    
+    // Simplified EQ calculation for visualization
+    // Using a peak/shelf approximation
+    float delta = freq_hz / band->frequency;
+    
+    if (delta < 0.1f) delta = 0.1f;
+    if (delta > 10.0f) delta = 10.0f;
+    
+    // Distance from center frequency (in octaves)
+    float octave_dist = logf(delta) / logf(2.0f);
+    
+    // Gaussian-like response centered at band frequency
+    float response = band->gain * expf(-0.5f * (octave_dist * octave_dist) / (0.5f * 0.5f));
+    
+    return response;
+}
+
+// Draw EQ curve and graph on bottom screen with touch controls
+void render_eq_window(void)
+{
+    if (!g_eq_window_open) return;
+    
+    // Bounds checking
+    if (g_selected_step < 0 || g_selected_step >= g_current_show.num_steps) {
+        g_eq_window_open = 0;
+        return;
+    }
+    if (g_eq_editing_channel < 0 || g_eq_editing_channel >= 16) {
+        g_eq_window_open = 0;
+        return;
+    }
+    
+    u32 clrBg = C2D_Color32(0x1A, 0x1A, 0x1A, 0xFF);
+    u32 clrBorder = C2D_Color32(0x50, 0x50, 0x50, 0xFF);
+    u32 clrWhite = C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF);
+    u32 clrCyan = C2D_Color32(0x00, 0xFF, 0xFF, 0xFF);
+    u32 clrGreen = C2D_Color32(0x00, 0xFF, 0x00, 0xFF);
+    u32 clrYellow = C2D_Color32(0xFF, 0xFF, 0x00, 0xFF);
+    u32 clrRed = C2D_Color32(0xFF, 0x00, 0x00, 0xFF);
+    u32 clrOrange = C2D_Color32(0xFF, 0xA0, 0x00, 0xFF);
+    u32 clrMagenta = C2D_Color32(0xFF, 0x00, 0xFF, 0xFF);
+    
+    C2D_TargetClear(g_botScreen.target, clrBg);
+    C2D_SceneBegin(g_botScreen.target);
+    
+    ChannelEQ *eq = &g_current_show.steps[g_selected_step].eqs[g_eq_editing_channel];
+    
+    // ===== HEADER (0-18px) =====
+    C2D_DrawRectSolid(0, 0, 0.5f, SCREEN_WIDTH_BOT, 18, C2D_Color32(0x0F, 0x0F, 0x3F, 0xFF));
+    C2D_DrawRectangle(0, 0, 0.5f, SCREEN_WIDTH_BOT, 18, clrBorder, clrBorder, clrBorder, clrBorder);
+    
+    char header[64];
+    snprintf(header, sizeof(header), "CH %02d", g_eq_editing_channel + 1);
+    draw_debug_text(&g_botScreen, header, 8.0f, 3.0f, 0.45f, clrYellow);
+    
+    // Store enable button rect for touch detection (x=80, y=3, w=60, h=12)
+    // Will be used in touch handler
+    
+    // Enable/Disable button (clickable zone)
+    const char *enable_text = eq->enabled ? "ENABLED" : "DISABLED";
+    u32 enable_color = eq->enabled ? clrGreen : clrRed;
+    C2D_DrawRectSolid(80, 3, 0.5f, 60, 12, enable_color);
+    C2D_DrawRectangle(80, 3, 0.5f, 60, 12, clrBorder, clrBorder, clrBorder, clrBorder);
+    draw_debug_text(&g_botScreen, enable_text, 85.0f, 2.0f, 0.35f, clrWhite);
+    
+    // ===== EQ GRAPH AREA (20-140px) =====
+    int graph_x = 8;
+    int graph_y = 20;
+    int graph_w = 240;
+    int graph_h = 115;
+    
+    C2D_DrawRectSolid(graph_x, graph_y, 0.5f, graph_w, graph_h, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
+    C2D_DrawRectangle(graph_x, graph_y, 0.5f, graph_w, graph_h, clrBorder, clrBorder, clrBorder, clrBorder);
+    
+    // Draw frequency grid lines  
+    float freq_markers[] = {20, 100, 1000, 10000, 20000};
+    for (int i = 0; i < 5; i++) {
+        float log_pos = (logf(freq_markers[i] / 20.0f) / logf(20000.0f / 20.0f));
+        int x = graph_x + (int)(log_pos * graph_w);
+        C2D_DrawRectSolid(x, graph_y, 0.5f, 1, graph_h, C2D_Color32(0x33, 0x33, 0x33, 0xFF));
+    }
+    
+    // Draw center line (0dB)
+    int center_y = graph_y + graph_h / 2;
+    C2D_DrawRectSolid(graph_x, center_y, 0.5f, graph_w, 1, C2D_Color32(0x44, 0x44, 0x44, 0xFF));
+    
+    // Draw individual band curves (thick, semi-transparent)
+    u32 band_colors[] = {clrCyan, clrGreen, clrYellow, clrOrange, clrMagenta};
+    
+    for (int b = 0; b < 5; b++) {
+        EQBand *band = &eq->bands[b];
+        
+        int prev_x = graph_x;
+        int prev_y = center_y;
+        
+        for (int x = graph_x; x < graph_x + graph_w; x += 1) {
+            float log_pos = (float)(x - graph_x) / (float)graph_w;
+            float freq = 20.0f * powf(20000.0f / 20.0f, log_pos);
+            
+            float response_db = calculate_eq_response(band, freq);
+            float norm_gain = (response_db + 15.0f) / 30.0f;
+            if (norm_gain < 0) norm_gain = 0;
+            if (norm_gain > 1) norm_gain = 1;
+            
+            int y = center_y - (int)(norm_gain * graph_h / 2);
+            
+            if (x > graph_x) {
+                // Draw thicker line (2-3px) for each band
+                C2D_DrawRectSolid(prev_x, prev_y - 1, 0.51f, x - prev_x, 3, band_colors[b]);
+            }
+            
+            prev_x = x;
+            prev_y = y;
+        }
+    }
+    
+    // Draw combined result curve (white, thickest)
+    {
+        int prev_x = graph_x;
+        int prev_y = center_y;
+        
+        for (int x = graph_x; x < graph_x + graph_w; x += 1) {
+            float log_pos = (float)(x - graph_x) / (float)graph_w;
+            float freq = 20.0f * powf(20000.0f / 20.0f, log_pos);
+            
+            float total_gain = 0;
+            for (int b = 0; b < 5; b++) {
+                total_gain += calculate_eq_response(&eq->bands[b], freq);
+            }
+            
+            if (total_gain > 15.0f) total_gain = 15.0f;
+            if (total_gain < -15.0f) total_gain = -15.0f;
+            
+            float norm_gain = (total_gain + 15.0f) / 30.0f;
+            int y = center_y - (int)(norm_gain * graph_h / 2);
+            
+            if (x > graph_x) {
+                C2D_DrawRectSolid(prev_x, prev_y - 1, 0.52f, x - prev_x, 3, clrWhite);
+            }
+            
+            prev_x = x;
+            prev_y = y;
+        }
+    }
+    
+    // ===== BAND INFO PANEL (145-240px) =====
+    int info_y = 145;
+    int band_height = 19;
+    
+    for (int b = 0; b < 5; b++) {
+        EQBand *band = &eq->bands[b];
+        int y = info_y + (b * band_height);
+        
+        // Highlight selected band
+        u32 bg_color = (b == g_eq_selected_band) ? C2D_Color32(0x00, 0x44, 0x88, 0xFF) : C2D_Color32(0x25, 0x25, 0x25, 0xFF);
+        C2D_DrawRectSolid(0, y, 0.5f, SCREEN_WIDTH_BOT, band_height - 1, bg_color);
+        C2D_DrawRectangle(0, y, 0.5f, SCREEN_WIDTH_BOT, band_height - 1, clrBorder, clrBorder, clrBorder, clrBorder);
+        
+        const char *type_name = get_filter_type_name(band->type);
+        char band_str[128];
+        snprintf(band_str, sizeof(band_str), "B%d[%s]  %.0fHz  G:%+.1fdB  Q:%.1f",
+                 b + 1, type_name, band->frequency, band->gain, band->q_factor);
+        
+        u32 text_color = (b == g_eq_selected_band) ? clrYellow : clrCyan;
+        draw_debug_text(&g_botScreen, band_str, 5.0f, y + 3.0f, 0.38f, text_color);
+        
+        // Store band touch rect for later use: x=0, y, w=320, h=19
+    }
+}
+
 void render_keyboard(void)
 {
     u32 clrBg = C2D_Color32(0x20, 0x20, 0x20, 0xFF);
@@ -890,10 +1480,25 @@ void render_keyboard(void)
 
 void render_bot_screen(void)
 {
+    // Safety: Don't render if not fully initialized
+    if (!g_init_complete) {
+        C2D_TargetClear(g_botScreen.target, 0x000000FF);
+        C2D_SceneBegin(g_botScreen.target);
+        return;
+    }
+    
     if (g_creating_new_show) {
         render_keyboard();
         return;
     }
+    
+    // If EQ window is open, render EQ on bottom screen instead of mixer
+    if (g_eq_window_open) {
+        render_eq_window();
+        return;
+    }
+    
+    // Normal mixer rendering
     
     u32 clrBg = C2D_Color32(0x1A, 0x1A, 0x1A, 0xFF);
     C2D_TargetClear(g_botScreen.target, clrBg);
@@ -1335,67 +1940,74 @@ int main(int argc, char* argv[])
         update_touch_input();
         
         u32 kDown = hidKeysDown();
+        u32 kHeld = hidKeysHeld();
         
-        // START button opens/closes show manager
-        if (kDown & KEY_START) {
-            if (g_app_mode == APP_MODE_MIXER) {
-                // Opening manager: do NOT save, just switch
-                list_available_shows();
-                g_app_mode = APP_MODE_MANAGER;
-            } else {
-                // Closing manager: return to mixer
-                g_app_mode = APP_MODE_MIXER;
-            }
-        }
-        
-        if (g_app_mode == APP_MODE_MIXER) {
-            if (g_creating_new_show) {
-                // Handle new show naming input
-                handle_new_show_input();
-            } else {
-                // SELECT button: Start creating new show
-                if (kDown & KEY_SELECT) {
-                    g_creating_new_show = 1;
-                    g_new_show_input_pos = 0;
-                    memset(g_new_show_name, 0, sizeof(g_new_show_name));
-                }
-                
-                // Up/Down: Navigate steps
-                if (kDown & KEY_DUP) {
-                    g_selected_step--;
-                    if (g_selected_step < 0) g_selected_step = g_current_show.num_steps - 1;
-                    apply_step_to_faders(g_selected_step);
-                }
-                if (kDown & KEY_DDOWN) {
-                    g_selected_step++;
-                    if (g_selected_step >= g_current_show.num_steps) g_selected_step = 0;
-                    apply_step_to_faders(g_selected_step);
-                }
-                
-                // X: Save show
-                if (kDown & KEY_X) {
-                    save_show_to_file(&g_current_show);
-                }
-                
-                // Y: Save step
-                if (kDown & KEY_Y) {
-                    save_step_from_faders(g_selected_step);
-                    save_show_to_file(&g_current_show);
-                }
-                
-                // L: Add new step
-                if (kDown & KEY_L) {
-                    add_step();
-                }
-                
-                // R: Duplicate current step
-                if (kDown & KEY_R) {
-                    duplicate_step();
-                }
-            }
+        // If EQ window is open, handle EQ input instead of normal controls
+        if (g_eq_window_open) {
+            handle_eq_input(kDown, kHeld);
         } else {
-            // Show Manager mode
-            handle_manager_input();
+            // Normal mixer/manager controls
+            // START button opens/closes show manager
+            if (kDown & KEY_START) {
+                if (g_app_mode == APP_MODE_MIXER) {
+                    // Opening manager: do NOT save, just switch
+                    list_available_shows();
+                    g_app_mode = APP_MODE_MANAGER;
+                } else {
+                    // Closing manager: return to mixer
+                    g_app_mode = APP_MODE_MIXER;
+                }
+            }
+            
+            if (g_app_mode == APP_MODE_MIXER) {
+                if (g_creating_new_show) {
+                    // Handle new show naming input
+                    handle_new_show_input();
+                } else {
+                    // SELECT button: Start creating new show
+                    if (kDown & KEY_SELECT) {
+                        g_creating_new_show = 1;
+                        g_new_show_input_pos = 0;
+                        memset(g_new_show_name, 0, sizeof(g_new_show_name));
+                    }
+                    
+                    // Up/Down: Navigate steps
+                    if (kDown & KEY_DUP) {
+                        g_selected_step--;
+                        if (g_selected_step < 0) g_selected_step = g_current_show.num_steps - 1;
+                        apply_step_to_faders(g_selected_step);
+                    }
+                    if (kDown & KEY_DDOWN) {
+                        g_selected_step++;
+                        if (g_selected_step >= g_current_show.num_steps) g_selected_step = 0;
+                        apply_step_to_faders(g_selected_step);
+                    }
+                    
+                    // X: Save show
+                    if (kDown & KEY_X) {
+                        save_show_to_file(&g_current_show);
+                    }
+                    
+                    // Y: Save step
+                    if (kDown & KEY_Y) {
+                        save_step_from_faders(g_selected_step);
+                        save_show_to_file(&g_current_show);
+                    }
+                    
+                    // L: Add new step
+                    if (kDown & KEY_L) {
+                        add_step();
+                    }
+                    
+                    // R: Duplicate current step
+                    if (kDown & KEY_R) {
+                        duplicate_step();
+                    }
+                }
+            } else {
+                // Show Manager mode
+                handle_manager_input();
+            }
         }
         
         render_frame();
