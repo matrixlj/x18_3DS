@@ -89,6 +89,11 @@ C2D_Image g_grip_img = {0};              // Grip/slider image
 C2D_SpriteSheet g_fader_sheet = NULL;    // Fader background sprite sheet
 C2D_Image g_fader_bkg = {0};             // Fader background image
 
+// Image loading status for debugging
+int g_romfs_mounted = 0;
+int g_grip_loaded = 0;
+int g_fader_loaded = 0;
+
 // Mixer
 Fader g_faders[NUM_FADERS];
 
@@ -588,17 +593,42 @@ void init_graphics(void)
     g_textBuf = C2D_TextBufNew(2048);
     
     // Load fader sprite sheets from /gfx/ (embedded in romfs)
+    printf("[DEBUG] Attempting to load spritesheets from romfs:/gfx/\n");
+    
+    // List contents of gfx directory to verify romfs is mounted correctly
+    DIR* dir = opendir("romfs:/gfx/");
+    if (dir) {
+        struct dirent* entry;
+        printf("[DEBUG] Contents of romfs:/gfx/:\n");
+        while ((entry = readdir(dir)) != NULL) {
+            printf("[DEBUG]   - %s\n", entry->d_name);
+        }
+        closedir(dir);
+    } else {
+        printf("[DEBUG] ERROR: Could not open romfs:/gfx/ directory\n");
+    }
+    
     // Load grip sprite sheet
     g_grip_sheet = C2D_SpriteSheetLoad("romfs:/gfx/Grip.t3x");
     if (g_grip_sheet) {
         g_grip_img = C2D_SpriteSheetGetImage(g_grip_sheet, 0);
+        g_grip_loaded = 1;
+        printf("[DEBUG] Successfully loaded Grip.t3x\n");
+    } else {
+        printf("[DEBUG] Failed to load Grip.t3x\n");
     }
     
     // Load fader background sprite sheet
     g_fader_sheet = C2D_SpriteSheetLoad("romfs:/gfx/FaderBkg.t3x");
     if (g_fader_sheet) {
         g_fader_bkg = C2D_SpriteSheetGetImage(g_fader_sheet, 0);
+        g_fader_loaded = 1;
+        printf("[DEBUG] Successfully loaded FaderBkg.t3x\n");
+    } else {
+        printf("[DEBUG] Failed to load FaderBkg.t3x\n");
     }
+    
+    g_romfs_mounted = 1;
     
     init_mixer();
     init_default_show();
@@ -862,6 +892,12 @@ void render_bot_screen(void)
     u32 clrBg = C2D_Color32(0x1A, 0x1A, 0x1A, 0xFF);
     C2D_TargetClear(g_botScreen.target, clrBg);
     C2D_SceneBegin(g_botScreen.target);
+    
+    // Debug: Show image loading status
+    char debug_msg[128];
+    snprintf(debug_msg, sizeof(debug_msg), "RomFS:%d Grip:%d Fader:%d", 
+             g_romfs_mounted, g_grip_loaded, g_fader_loaded);
+    draw_debug_text(&g_botScreen, debug_msg, 5, 5, 0.25f, C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF));
     
     u32 clrMuteMain = C2D_Color32(0xDD, 0x33, 0x33, 0xFF);
     u32 clrMuteLight = C2D_Color32(0xFF, 0x66, 0x66, 0xFF);
