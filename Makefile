@@ -4,6 +4,7 @@ TARGET = x18mixer
 BUILD = build
 SOURCES = src
 ICON = gfx/icon.png
+ROMFS_DIR := gfx
 
 # Application metadata
 APP_TITLE = X18 Mixer

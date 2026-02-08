@@ -83,6 +83,12 @@ typedef struct {
 Screen g_topScreen, g_botScreen;
 C2D_TextBuf g_textBuf = NULL;
 
+// Fader sprite sheets and images
+C2D_SpriteSheet g_grip_sheet = NULL;     // Grip sprite sheet
+C2D_Image g_grip_img = {0};              // Grip/slider image
+C2D_SpriteSheet g_fader_sheet = NULL;    // Fader background sprite sheet
+C2D_Image g_fader_bkg = {0};             // Fader background image
+
 // Mixer
 Fader g_faders[NUM_FADERS];
 
@@ -514,13 +520,13 @@ int touch_hits_fader(touchPosition touch, Fader *fader, float *out_value)
 int touch_hits_mute_button(touchPosition touch, Fader *fader)
 {
     return (touch.px >= fader->x && touch.px < fader->x + fader->w &&
-            touch.py >= 201 && touch.py <= 214);
+            touch.py >= 210 && touch.py <= 227);
 }
 
 int touch_hits_eq_button(touchPosition touch, Fader *fader)
 {
     return (touch.px >= fader->x && touch.px < fader->x + fader->w &&
-            touch.py >= 215 && touch.py <= 228);
+            touch.py >= 5 && touch.py <= 22);
 }
 
 void update_mixer_touch(void)
@@ -576,6 +582,20 @@ void init_graphics(void)
     g_botScreen.height = SCREEN_HEIGHT_BOT;
     
     g_textBuf = C2D_TextBufNew(2048);
+    
+    // Load fader sprite sheets from /gfx/ (embedded in romfs)
+    // Load grip sprite sheet
+    g_grip_sheet = C2D_SpriteSheetLoad("romfs:/gfx/Grip.t3x");
+    if (g_grip_sheet) {
+        g_grip_img = C2D_SpriteSheetGetImage(g_grip_sheet, 0);
+    }
+    
+    // Load fader background sprite sheet
+    g_fader_sheet = C2D_SpriteSheetLoad("romfs:/gfx/FaderBkg.t3x");
+    if (g_fader_sheet) {
+        g_fader_bkg = C2D_SpriteSheetGetImage(g_fader_sheet, 0);
+    }
+    
     init_mixer();
     init_default_show();
     apply_step_to_faders(0);
@@ -587,6 +607,16 @@ void init_graphics(void)
 
 void cleanup_graphics(void)
 {
+    // Free sprite sheets
+    if (g_grip_sheet) {
+        C2D_SpriteSheetFree(g_grip_sheet);
+        g_grip_sheet = NULL;
+    }
+    if (g_fader_sheet) {
+        C2D_SpriteSheetFree(g_fader_sheet);
+        g_fader_sheet = NULL;
+    }
+    
     if (g_textBuf) {
         C2D_TextBufDelete(g_textBuf);
         g_textBuf = NULL;
@@ -608,6 +638,30 @@ void draw_debug_text(Screen* screen, const char* text, float x, float y, float s
     C2D_TextParse(&c2d_text, g_textBuf, text);
     C2D_TextOptimize(&c2d_text);
     C2D_DrawText(&c2d_text, C2D_WithColor, x, y, 0.5f, scale, scale, color);
+}
+
+// Draw a 3D button with shadow effect
+void draw_3d_button(float x, float y, float w, float h, u32 color_main, u32 color_light, u32 color_dark, int pressed)
+{
+    // Shadow (bottom-right)
+    C2D_DrawRectSolid(x + 2, y + 2, 0.4f, w, h, C2D_Color32(0x00, 0x00, 0x00, 0x60));
+    
+    // Main button body
+    C2D_DrawRectSolid(x, y, 0.5f, w, h, color_main);
+    
+    if (!pressed) {
+        // Top-left highlight
+        C2D_DrawRectSolid(x, y, 0.51f, w - 1, 1, color_light);
+        C2D_DrawRectSolid(x, y, 0.51f, 1, h - 1, color_light);
+        
+        // Bottom-right shadow
+        C2D_DrawRectSolid(x + w - 1, y, 0.51f, 1, h, color_dark);
+        C2D_DrawRectSolid(x, y + h - 1, 0.51f, w, 1, color_dark);
+    } else {
+        // Pressed: inverted highlights
+        C2D_DrawRectSolid(x + w - 1, y, 0.51f, 1, h, color_light);
+        C2D_DrawRectSolid(x, y + h - 1, 0.51f, w, 1, color_light);
+    }
 }
 
 // ============================================================================
@@ -797,19 +851,23 @@ void render_bot_screen(void)
         return;
     }
     
-    u32 clrBg = C2D_Color32(0x20, 0x20, 0x20, 0xFF);
+    u32 clrBg = C2D_Color32(0x1A, 0x1A, 0x1A, 0xFF);
     C2D_TargetClear(g_botScreen.target, clrBg);
     C2D_SceneBegin(g_botScreen.target);
     
-    u32 clrFader = C2D_Color32(0x60, 0x60, 0x60, 0xFF);
-    u32 clrFill = C2D_Color32(0x44, 0x44, 0xFF, 0xFF);
-    u32 clrMute = C2D_Color32(0xFF, 0x44, 0x44, 0xFF);
-    u32 clrMuteActive = C2D_Color32(0xFF, 0x00, 0x00, 0xFF);
-    u32 clrMuteOff = C2D_Color32(0x00, 0x00, 0x00, 0xFF);
-    u32 clrEq = C2D_Color32(0x44, 0xFF, 0x44, 0xFF);
-    u32 clrEqActive = C2D_Color32(0x00, 0xFF, 0x00, 0xFF);
+    u32 clrMuteMain = C2D_Color32(0xDD, 0x33, 0x33, 0xFF);
+    u32 clrMuteLight = C2D_Color32(0xFF, 0x66, 0x66, 0xFF);
+    u32 clrMuteDark = C2D_Color32(0x88, 0x00, 0x00, 0xFF);
+    u32 clrEqMain = C2D_Color32(0x33, 0xDD, 0x33, 0xFF);
+    u32 clrEqLight = C2D_Color32(0x66, 0xFF, 0x66, 0xFF);
+    u32 clrEqDark = C2D_Color32(0x00, 0x88, 0x00, 0xFF);
     u32 clrText = C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF);
-    u32 clrBorder = C2D_Color32(0x50, 0x50, 0x50, 0xFF);
+    u32 clrBorder = C2D_Color32(0x40, 0x40, 0x40, 0xFF);
+    u32 clrGripMain = C2D_Color32(0xCC, 0xCC, 0xCC, 0xFF);  // Light gray grip
+    u32 clrGripLight = C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF);  // White highlight
+    u32 clrGripDark = C2D_Color32(0x66, 0x66, 0x66, 0xFF);   // Dark gray shadow
+    u32 clrFaderTrack = C2D_Color32(0x1A, 0x1A, 0x1A, 0xFF);  // Very dark track
+    u32 clrTickMark = C2D_Color32(0x55, 0x55, 0x55, 0xFF);
     
     for (int i = 0; i < NUM_FADERS; i++) {
         Fader *f = &g_faders[i];
@@ -817,43 +875,92 @@ void render_bot_screen(void)
         // Channel border
         C2D_DrawRectangle(f->x, f->y, 0.5f, f->w, f->h, clrBorder, clrBorder, clrBorder, clrBorder);
         
-        // Channel number
+        // EQ button at top (NEW POSITION)
+        u32 eq_color_main = f->eq_enabled ? clrEqDark : clrEqMain;
+        u32 eq_color_light = f->eq_enabled ? C2D_Color32(0x88, 0xFF, 0x88, 0xFF) : clrEqLight;
+        u32 eq_color_dark = f->eq_enabled ? clrEqLight : clrEqDark;
+        draw_3d_button(f->x + 1, 5, f->w - 2, 14, eq_color_main, eq_color_light, eq_color_dark, f->eq_enabled);
+        draw_debug_text(&g_botScreen, "Eq", f->x + 2, 7, 0.25f, clrText);
+        
+        // Channel number (below EQ button)
         char label[4];
         snprintf(label, sizeof(label), "%d", f->id);
-        draw_debug_text(&g_botScreen, label, f->x + 2, f->y + 1, 0.2f, clrText);
+        draw_debug_text(&g_botScreen, label, f->x + 2, 22, 0.25f, clrText);
         
         // Volume percentage
         char vol_str[8];
         snprintf(vol_str, sizeof(vol_str), "%d%%", (int)(f->value * 100));
-        draw_debug_text(&g_botScreen, vol_str, f->x + 1, f->y + 12, 0.2f, clrText);
+        draw_debug_text(&g_botScreen, vol_str, f->x + 1, 32, 0.2f, clrText);
         
-        // Fader bar background
-        float fader_top = 27;
-        float fader_bottom = 200;
+        // ===== FADER TRACK WITH SCALE MARKS =====
+        float fader_top = 45;
+        float fader_bottom = 205;
         float fader_height = fader_bottom - fader_top;
         float bar_x = f->x + (f->w - FADER_BAR_WIDTH) / 2;
-        C2D_DrawRectSolid(bar_x, fader_top, 0.5f, FADER_BAR_WIDTH, fader_height, clrFader);
         
-        // Fader bar fill
-        float fill_height = fader_height * f->value;
-        float fill_y = fader_bottom - fill_height;
-        if (fill_height > 0) {
-            C2D_DrawRectSolid(bar_x, fill_y, 0.5f, FADER_BAR_WIDTH, fill_height, clrFill);
-        }
-        
-        // Mute button
-        if (f->muted) {
-            C2D_DrawRectSolid(f->x + 1, 201, 0.5f, f->w - 2, BUTTON_HEIGHT, clrMuteActive);
+        // Draw fader background image if loaded, otherwise use procedural fallback
+        if (g_fader_bkg.tex != NULL) {
+            // Draw fader background image scaled to fit the fader area
+            // Image is 94x368, we need to scale to approximately 6-8 width x fader_height
+            float img_scale_x = 6.0f / 94.0f;
+            float img_scale_y = fader_height / 368.0f;
+            C2D_DrawImageAt(g_fader_bkg,
+                           bar_x - 2 + (4 - 6) * 0.5f, fader_top,  // x, y (centered)
+                           0.5f, NULL, img_scale_x, img_scale_y);
         } else {
-            C2D_DrawRectSolid(f->x + 1, 201, 0.5f, f->w - 2, BUTTON_HEIGHT, clrMute);
-            C2D_DrawRectSolid(f->x + 2, 202, 0.5f, f->w - 4, BUTTON_HEIGHT - 2, clrMuteOff);
+            // Fallback: procedural fader track
+            C2D_DrawRectSolid(bar_x - 2, fader_top, 0.5f, FADER_BAR_WIDTH + 4, fader_height, clrFaderTrack);
+            C2D_DrawRectangle(bar_x - 2, fader_top, 0.5f, FADER_BAR_WIDTH + 4, fader_height, 
+                             clrBorder, clrBorder, clrBorder, clrBorder);
+            
+            // Draw tick marks
+            const float tick_positions[] = {0.0f, 0.25f, 0.5f, 0.75f, 1.0f};
+            for (int tick = 0; tick < 5; tick++) {
+                float tick_y = fader_top + (fader_height * tick_positions[tick]);
+                C2D_DrawRectSolid(bar_x - 2, tick_y, 0.51f, 3, 1, clrTickMark);
+                for (int minor = 1; minor < 4; minor++) {
+                    float minor_tick_y = tick_y + (fader_height * 0.25f * (minor / 4.0f));
+                    if (minor_tick_y < fader_bottom) {
+                        C2D_DrawRectSolid(bar_x - 1, minor_tick_y, 0.51f, 2, 1, C2D_Color32(0x33, 0x33, 0x33, 0xFF));
+                    }
+                }
+            }
         }
-        draw_debug_text(&g_botScreen, "M", f->x + 4, 202, 0.25f, clrText);
         
-        // EQ button
-        u32 eq_color = f->eq_enabled ? clrEqActive : clrEq;
-        C2D_DrawRectSolid(f->x + 1, 215, 0.5f, f->w - 2, BUTTON_HEIGHT, eq_color);
-        draw_debug_text(&g_botScreen, "E", f->x + 4, 216, 0.25f, clrText);
+        // ===== GRIP/SLIDER =====
+        float grip_y = fader_bottom - (fader_height * f->value);
+        float grip_x = f->x + (f->w - 11) / 2;  // Center the grip
+        
+        // Draw grip image if loaded, otherwise use procedural fallback
+        if (g_grip_img.tex != NULL) {
+            // Draw grip image scaled to appropriate size
+            // Original is 38x68, we want approximately 12x16
+            float grip_scale_x = 12.0f / 38.0f;
+            float grip_scale_y = 16.0f / 68.0f;
+            C2D_DrawImageAt(g_grip_img,
+                           grip_x - (12 - 11) * 0.5f, grip_y,  // Center grip over track
+                           0.5f, NULL, grip_scale_x, grip_scale_y);
+        } else {
+            // Fallback: procedural grip
+            float grip_w = 11;
+            float grip_h = 16;
+            
+            C2D_DrawRectSolid(grip_x + 1, grip_y + 1, 0.4f, grip_w, grip_h, C2D_Color32(0x00, 0x00, 0x00, 0x90));
+            C2D_DrawRectSolid(grip_x, grip_y, 0.5f, grip_w, grip_h, clrGripMain);
+            C2D_DrawRectSolid(grip_x + 1, grip_y + 1, 0.51f, grip_w - 2, 2, clrGripLight);
+            C2D_DrawRectSolid(grip_x, grip_y + 2, 0.51f, 1, grip_h - 4, clrGripLight);
+            C2D_DrawRectSolid(grip_x + grip_w - 1, grip_y + 2, 0.51f, 1, grip_h - 4, clrGripDark);
+            C2D_DrawRectSolid(grip_x + grip_w / 2, grip_y + 3, 0.52f, 1, grip_h - 6, C2D_Color32(0xAA, 0xAA, 0xAA, 0xFF));
+            C2D_DrawRectangle(grip_x, grip_y, 0.52f, grip_w, grip_h, clrGripDark, clrGripDark, clrGripDark, clrGripDark);
+        }
+        
+        // Mute button at bottom (NEW POSITION)
+        // Dark when not muted (sollevato), bright when muted (acceso/premuto)
+        u32 mute_color_main = f->muted ? clrMuteMain : clrMuteDark;
+        u32 mute_color_light = f->muted ? clrMuteLight : C2D_Color32(0x55, 0x00, 0x00, 0xFF);
+        u32 mute_color_dark = f->muted ? clrMuteDark : C2D_Color32(0x44, 0x00, 0x00, 0xFF);
+        draw_3d_button(f->x + 1, 210, f->w - 2, 17, mute_color_main, mute_color_light, mute_color_dark, f->muted);
+        draw_debug_text(&g_botScreen, "M", f->x + 4, 212, 0.25f, clrText);
     }
 }
 
