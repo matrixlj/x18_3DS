@@ -978,7 +978,8 @@ void render_bot_screen(void)
         }
         
         // ===== GRIP/SLIDER =====
-        float grip_y = fader_bottom - (fader_height * f->value);
+        // Grip corsa ridotta: da 15% (valore 0) a top (valore max)
+        float grip_y = fader_bottom - (fader_height * (0.15f + f->value * 0.85f));
         float grip_x = f->x + (f->w - 11) / 2;  // Center the grip
         
         // Draw grip image if loaded, otherwise use procedural fallback
