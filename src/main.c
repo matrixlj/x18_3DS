@@ -951,11 +951,11 @@ void render_bot_screen(void)
         // Draw fader background image if loaded, otherwise use procedural fallback
         if (g_fader_bkg.tex != NULL) {
             // Draw fader background image scaled to fit the fader area
-            // Image is 92x391, we need to scale to approximately 6-8 width x fader_height
-            float img_scale_x = 6.0f / 92.0f;
+            // Image is 92x391, scale width to 10px (stretched horizontally for better visibility)
+            float img_scale_x = 10.0f / 92.0f;  // Increased from 6.0f for wider appearance
             float img_scale_y = fader_height / 391.0f;
             C2D_DrawImageAt(g_fader_bkg,
-                           bar_x - 2 + (4 - 6) * 0.5f, fader_top,  // x, y (centered)
+                           bar_x - 2 + (4 - 10) * 0.5f, fader_top,  // x, y (centered on 20px width)
                            0.5f, NULL, img_scale_x, img_scale_y);
         } else {
             // Fallback: procedural fader track
