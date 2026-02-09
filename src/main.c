@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <ctype.h>
 
 // ============================================================================
 // SCREEN DEFINITIONS
@@ -175,7 +176,7 @@ int g_osc_verbose = 1;                          // 1 = log OSC commands
 
 // Network Config Window state
 int g_net_config_open = 0;          // 0=closed, 1=open
-char g_net_ip_input[16] = "10.10.99.112";      // IP address input
+char g_net_ip_digits[13] = "10101099112";      // IP address digits only (12 max)
 char g_net_port_input[6] = "10023";             // Port input
 int g_net_selected_field = 0;       // 0=IP, 1=Port
 int g_net_ip_cursor_pos = 0;        // Cursor position in IP field
@@ -200,6 +201,7 @@ void load_network_config(void);
 void save_network_config(void);
 void handle_net_config_input(u32 kDown, int touch_edge);
 void render_net_config_window(void);
+void ip_digits_to_display(const char *digits, char *display_buf, int max_len);
 
 // ============================================================================
 // OSC CORE FUNCTIONS (Phase 1 - Send Only)
@@ -926,7 +928,9 @@ void load_network_config(void)
     FILE *f = fopen("/3ds/x18mixer/net.txt", "r");
     if (!f) {
         // Use defaults if file doesn't exist
-        strcpy(g_net_ip_input, g_mixer_host);
+        // Default IP: 10.10.99.112 -> digits: 10101099112
+        strcpy(g_net_ip_digits, "10101099112");
+        strcpy(g_mixer_host, "10.10.99.112");
         snprintf(g_net_port_input, sizeof(g_net_port_input), "%d", g_mixer_port);
         return;
     }
@@ -937,7 +941,15 @@ void load_network_config(void)
         char ip[16];
         int port;
         if (sscanf(line, "%15s %d", ip, &port) == 2) {
-            strcpy(g_net_ip_input, ip);
+            // Convert IP with dots to digits only (remove dots)
+            int digit_idx = 0;
+            for (int i = 0; ip[i] != '\0' && digit_idx < 12; i++) {
+                if (isdigit(ip[i])) {
+                    g_net_ip_digits[digit_idx++] = ip[i];
+                }
+            }
+            g_net_ip_digits[digit_idx] = '\0';
+            
             snprintf(g_net_port_input, sizeof(g_net_port_input), "%d", port);
             
             // Update global OSC configuration
@@ -966,16 +978,18 @@ void save_network_config(void)
         port = 10023;  // Default
     }
     
-    // Write IP and port
-    fprintf(f, "%s %d\n", g_net_ip_input, port);
+    // Convert digits to IP format and write
+    char ip_display[20];
+    ip_digits_to_display(g_net_ip_digits, ip_display, sizeof(ip_display));
+    fprintf(f, "%s %d\n", ip_display, port);
+    
+    // Also update the global config
+    strcpy(g_mixer_host, ip_display);
+    g_mixer_port = port;
     
     fflush(f);
     fsync(fileno(f));
     fclose(f);
-    
-    // Update global OSC configuration
-    strcpy(g_mixer_host, g_net_ip_input);
-    g_mixer_port = port;
     
     snprintf(g_save_status, sizeof(g_save_status), "Network config saved: %s:%d", g_mixer_host, g_mixer_port);
     g_save_status_timer = 120;
@@ -2265,6 +2279,25 @@ void render_show_manager(void)
     }
 }
 
+// Helper function to format IP address from digits (xxxxx -> xxx.xxx.xxx.xxx)
+// Pads with zeros on left if needed: "101099112" -> "000.101.099.112"
+void ip_digits_to_display(const char *digits, char *display_buf, int max_len)
+{
+    int len = strlen(digits);
+    // Pad to 12 digits
+    char padded[13] = {0};
+    int pad_count = 12 - len;
+    for (int i = 0; i < pad_count; i++) padded[i] = '0';
+    strcpy(padded + pad_count, digits);
+    
+    // Format as xxx.xxx.xxx.xxx
+    snprintf(display_buf, max_len, "%c%c%c.%c%c%c.%c%c%c.%c%c%c",
+             padded[0], padded[1], padded[2],
+             padded[3], padded[4], padded[5],
+             padded[6], padded[7], padded[8],
+             padded[9], padded[10], padded[11]);
+}
+
 // Render network configuration window (overlay on show manager)
 void render_net_config_window(void)
 {
@@ -2275,6 +2308,9 @@ void render_net_config_window(void)
     float win_y = 20.0f;
     float win_w = SCREEN_WIDTH_BOT - 20.0f;
     float win_h = 210.0f;
+    
+    // Draw opaque overlay behind window to block underlying elements
+    C2D_DrawRectSolid(0, 0, 0.40f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
     
     u32 clrWinBg = C2D_Color32(0x30, 0x30, 0x50, 0xFF);
     u32 clrWinBorder = C2D_Color32(0x80, 0x80, 0xFF, 0xFF);
@@ -2301,34 +2337,40 @@ void render_net_config_window(void)
     float input_w = win_w - 55.0f;
     float input_h = 16.0f;
     
-    u32 ip_bg_color = (g_net_selected_field == 0) ? C2D_Color32(0x25, 0x25, 0x40, 0xFF) : clrInputBg;
+    u32 ip_bg_color = (g_net_selected_field == 0) ? C2D_Color32(0xFF, 0xFF, 0x00, 0xFF) : clrInputBg;
     u32 ip_border_color = (g_net_selected_field == 0) ? C2D_Color32(0xFF, 0xFF, 0x00, 0xFF) : clrWinBorder;
     C2D_DrawRectSolid(ip_input_x, field_y - 2, 0.46f, input_w, input_h, ip_bg_color);
     C2D_DrawRectangle(ip_input_x, field_y - 2, 0.46f, input_w, input_h, ip_border_color, ip_border_color, ip_border_color, ip_border_color);
     
-    u32 ip_text_color = (g_net_selected_field == 0) ? C2D_Color32(0xFF, 0xFF, 0x00, 0xFF) : clrText;
-    draw_debug_text(&g_botScreen, g_net_ip_input, ip_input_x + 4, field_y - 1, 0.26f, ip_text_color);
+    // Format and display IP address
+    char ip_display[20];
+    ip_digits_to_display(g_net_ip_digits, ip_display, sizeof(ip_display));
+    u32 ip_text_color = (g_net_selected_field == 0) ? C2D_Color32(0x00, 0x00, 0x00, 0xFF) : clrText;
+    draw_debug_text(&g_botScreen, ip_display, ip_input_x + 4, field_y - 1, 0.32f, ip_text_color);
     
-    // Cursor in IP field
+    // Cursor in IP field (show under the relevant digit)
     if (g_net_selected_field == 0) {
-        draw_debug_text(&g_botScreen, "_", ip_input_x + 4 + g_net_ip_cursor_pos * 6, field_y - 1, 0.26f, ip_text_color);
+        // Calculate cursor position based on digit index (each digit is ~6px wide, but dots take space)
+        int digit_count = strlen(g_net_ip_digits);
+        // Position cursor after the last digit
+        draw_debug_text(&g_botScreen, "_", ip_input_x + 4 + digit_count * 7, field_y - 1, 0.32f, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
     }
     
     // Port label and input box
     float port_y = field_y + 18.0f;
     draw_debug_text(&g_botScreen, "Port:", win_x + 10, port_y, 0.3f, clrLabel);
     
-    u32 port_bg_color = (g_net_selected_field == 1) ? C2D_Color32(0x25, 0x25, 0x40, 0xFF) : clrInputBg;
+    u32 port_bg_color = (g_net_selected_field == 1) ? C2D_Color32(0xFF, 0xFF, 0x00, 0xFF) : clrInputBg;
     u32 port_border_color = (g_net_selected_field == 1) ? C2D_Color32(0xFF, 0xFF, 0x00, 0xFF) : clrWinBorder;
     C2D_DrawRectSolid(ip_input_x, port_y - 2, 0.46f, input_w, input_h, port_bg_color);
     C2D_DrawRectangle(ip_input_x, port_y - 2, 0.46f, input_w, input_h, port_border_color, port_border_color, port_border_color, port_border_color);
     
-    u32 port_text_color = (g_net_selected_field == 1) ? C2D_Color32(0xFF, 0xFF, 0x00, 0xFF) : clrText;
-    draw_debug_text(&g_botScreen, g_net_port_input, ip_input_x + 4, port_y - 1, 0.26f, port_text_color);
+    u32 port_text_color = (g_net_selected_field == 1) ? C2D_Color32(0x00, 0x00, 0x00, 0xFF) : clrText;
+    draw_debug_text(&g_botScreen, g_net_port_input, ip_input_x + 4, port_y - 1, 0.32f, port_text_color);
     
     // Cursor in Port field
     if (g_net_selected_field == 1) {
-        draw_debug_text(&g_botScreen, "_", ip_input_x + 4 + g_net_port_cursor_pos * 6, port_y - 1, 0.26f, port_text_color);
+        draw_debug_text(&g_botScreen, "_", ip_input_x + 4 + strlen(g_net_port_input) * 7, port_y - 1, 0.32f, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
     }
     
     // Numeric keypad (4 rows x 3 columns)
@@ -2616,36 +2658,30 @@ void handle_net_config_input(u32 kDown, int touch_edge)
                     if (strcmp(key, "Del") == 0) {
                         // Delete last character
                         if (g_net_selected_field == 0) {
-                            if (strlen(g_net_ip_input) > 0) {
-                                g_net_ip_input[strlen(g_net_ip_input) - 1] = '\0';
-                                if (g_net_ip_cursor_pos > 0) g_net_ip_cursor_pos--;
+                            if (strlen(g_net_ip_digits) > 0) {
+                                g_net_ip_digits[strlen(g_net_ip_digits) - 1] = '\0';
                             }
                         } else {
                             if (strlen(g_net_port_input) > 0) {
                                 g_net_port_input[strlen(g_net_port_input) - 1] = '\0';
-                                if (g_net_port_cursor_pos > 0) g_net_port_cursor_pos--;
                             }
                         }
                     } else if (strcmp(key, ".") == 0) {
-                        // Only allow dot in IP field
-                        if (g_net_selected_field == 0 && strlen(g_net_ip_input) < 15) {
-                            g_net_ip_input[strlen(g_net_ip_input)] = '.';
-                            g_net_ip_input[strlen(g_net_ip_input) + 1] = '\0';
-                            g_net_ip_cursor_pos = strlen(g_net_ip_input);
-                        }
+                        // Dot key does nothing in IP field now (we auto-add dots)
+                        // Skip it
                     } else {
                         // Add digit to current field
                         if (g_net_selected_field == 0) {
-                            if (strlen(g_net_ip_input) < 15) {
-                                g_net_ip_input[strlen(g_net_ip_input)] = key[0];
-                                g_net_ip_input[strlen(g_net_ip_input) + 1] = '\0';
-                                g_net_ip_cursor_pos = strlen(g_net_ip_input);
+                            // IP field: only accept digits (max 12)
+                            if (strlen(g_net_ip_digits) < 12 && isdigit(key[0])) {
+                                g_net_ip_digits[strlen(g_net_ip_digits)] = key[0];
+                                g_net_ip_digits[strlen(g_net_ip_digits) + 1] = '\0';
                             }
                         } else {
-                            if (strlen(g_net_port_input) < 5) {
+                            // Port field: only digits (max 5)
+                            if (strlen(g_net_port_input) < 5 && isdigit(key[0])) {
                                 g_net_port_input[strlen(g_net_port_input)] = key[0];
                                 g_net_port_input[strlen(g_net_port_input) + 1] = '\0';
-                                g_net_port_cursor_pos = strlen(g_net_port_input);
                             }
                         }
                     }
@@ -2762,7 +2798,7 @@ void handle_manager_input(void)
                 // NET button - open network configuration window
                 g_net_config_open = 1;
                 g_net_selected_field = 0;
-                g_net_ip_cursor_pos = strlen(g_net_ip_input);
+                g_net_ip_cursor_pos = strlen(g_net_ip_digits);
                 g_net_port_cursor_pos = strlen(g_net_port_input);
             } else if (check_button_touch(5)) {  // Button 5 = EXIT
                 // EXIT button - save if modified, then close
