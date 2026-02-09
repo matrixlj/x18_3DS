@@ -179,8 +179,7 @@ int g_net_config_open = 0;          // 0=closed, 1=open
 char g_net_ip_digits[13] = "10101099112";      // IP address digits only (12 max)
 char g_net_port_input[6] = "10023";             // Port input
 int g_net_selected_field = 0;       // 0=IP, 1=Port
-int g_net_ip_cursor_pos = 0;        // Cursor position in IP field
-int g_net_port_cursor_pos = 0;      // Cursor position in Port field
+int g_net_digit_index = 0;          // Which digit is selected (0-11 for IP, 0-4 for Port)
 
 // EQ Window state
 int g_eq_window_open = 0;           // 0=closed, 1=open
@@ -199,7 +198,7 @@ void add_step(void);
 void duplicate_step(void);
 void load_network_config(void);
 void save_network_config(void);
-void handle_net_config_input(u32 kDown, int touch_edge);
+void handle_net_config_input(u32 kDown);
 void render_net_config_window(void);
 void ip_digits_to_display(const char *digits, char *display_buf, int max_len);
 
@@ -2298,40 +2297,35 @@ void ip_digits_to_display(const char *digits, char *display_buf, int max_len)
              padded[9], padded[10], padded[11]);
 }
 
-// Render network configuration window (overlay on show manager)
+// Render network configuration window (on top screen)
 void render_net_config_window(void)
 {
     if (!g_net_config_open) return;
     
-    // Window background (larger to accommodate keypad)
+    // Window background (on top screen)
     float win_x = 10.0f;
     float win_y = 20.0f;
-    float win_w = SCREEN_WIDTH_BOT - 20.0f;
-    float win_h = 210.0f;
+    float win_w = SCREEN_WIDTH_TOP - 20.0f;
+    float win_h = 100.0f;
     
     // Draw opaque overlay behind window to block underlying elements
-    C2D_DrawRectSolid(0, 0, 0.40f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
+    C2D_DrawRectSolid(0, 0, 0.40f, SCREEN_WIDTH_TOP, SCREEN_HEIGHT_TOP, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
     
     u32 clrWinBg = C2D_Color32(0x30, 0x30, 0x50, 0xFF);
     u32 clrWinBorder = C2D_Color32(0x80, 0x80, 0xFF, 0xFF);
     u32 clrText = C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF);
     u32 clrLabel = C2D_Color32(0x80, 0xFF, 0xFF, 0xFF);
     u32 clrInputBg = C2D_Color32(0x15, 0x15, 0x25, 0xFF);
-    u32 clrBtnBg = C2D_Color32(0x40, 0x40, 0x60, 0xFF);
-    u32 clrBtnBorder = C2D_Color32(0x60, 0x60, 0x80, 0xFF);
-    u32 clrKeyBg = C2D_Color32(0x50, 0x50, 0x60, 0xFF);
-    u32 clrKeyBorder = C2D_Color32(0x70, 0x70, 0x90, 0xFF);
-    u32 clrDelKey = C2D_Color32(0xFF, 0x50, 0x50, 0xFF);
     
     C2D_DrawRectSolid(win_x, win_y, 0.45f, win_w, win_h, clrWinBg);
     C2D_DrawRectangle(win_x, win_y, 0.45f, win_w, win_h, clrWinBorder, clrWinBorder, clrWinBorder, clrWinBorder);
     
     // Title
-    draw_debug_text(&g_botScreen, "Network Config", win_x + 10, win_y + 5, 0.35f, clrLabel);
+    draw_debug_text(&g_topScreen, "Network Config", win_x + 10, win_y + 5, 0.35f, clrLabel);
     
-    // IP label and input box
+    // IP label and display
     float field_y = win_y + 20.0f;
-    draw_debug_text(&g_botScreen, "IP:", win_x + 10, field_y, 0.3f, clrLabel);
+    draw_debug_text(&g_topScreen, "IP:", win_x + 10, field_y, 0.3f, clrLabel);
     
     float ip_input_x = win_x + 35.0f;
     float input_w = win_w - 55.0f;
@@ -2346,19 +2340,18 @@ void render_net_config_window(void)
     char ip_display[20];
     ip_digits_to_display(g_net_ip_digits, ip_display, sizeof(ip_display));
     u32 ip_text_color = (g_net_selected_field == 0) ? C2D_Color32(0x00, 0x00, 0x00, 0xFF) : clrText;
-    draw_debug_text(&g_botScreen, ip_display, ip_input_x + 4, field_y - 1, 0.32f, ip_text_color);
+    draw_debug_text(&g_topScreen, ip_display, ip_input_x + 4, field_y - 1, 0.32f, ip_text_color);
     
-    // Cursor in IP field (show under the relevant digit)
+    // Show which digit is selected in IP field
     if (g_net_selected_field == 0) {
-        // Calculate cursor position based on digit index (each digit is ~6px wide, but dots take space)
-        int digit_count = strlen(g_net_ip_digits);
-        // Position cursor after the last digit
-        draw_debug_text(&g_botScreen, "_", ip_input_x + 4 + digit_count * 7, field_y - 1, 0.32f, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
+        // Highlight the selected digit
+        int highlight_x = ip_input_x + 4 + g_net_digit_index * 17;  // Each digit+dot is about 17px wide in display
+        draw_debug_text(&g_topScreen, "^", highlight_x, field_y + 8, 0.3f, C2D_Color32(0xFF, 0xFF, 0x00, 0xFF));
     }
     
-    // Port label and input box
+    // Port label and display
     float port_y = field_y + 18.0f;
-    draw_debug_text(&g_botScreen, "Port:", win_x + 10, port_y, 0.3f, clrLabel);
+    draw_debug_text(&g_topScreen, "Port:", win_x + 10, port_y, 0.3f, clrLabel);
     
     u32 port_bg_color = (g_net_selected_field == 1) ? C2D_Color32(0xFF, 0xFF, 0x00, 0xFF) : clrInputBg;
     u32 port_border_color = (g_net_selected_field == 1) ? C2D_Color32(0xFF, 0xFF, 0x00, 0xFF) : clrWinBorder;
@@ -2366,59 +2359,16 @@ void render_net_config_window(void)
     C2D_DrawRectangle(ip_input_x, port_y - 2, 0.46f, input_w, input_h, port_border_color, port_border_color, port_border_color, port_border_color);
     
     u32 port_text_color = (g_net_selected_field == 1) ? C2D_Color32(0x00, 0x00, 0x00, 0xFF) : clrText;
-    draw_debug_text(&g_botScreen, g_net_port_input, ip_input_x + 4, port_y - 1, 0.32f, port_text_color);
+    draw_debug_text(&g_topScreen, g_net_port_input, ip_input_x + 4, port_y - 1, 0.32f, port_text_color);
     
-    // Cursor in Port field
+    // Show which digit is selected in Port field
     if (g_net_selected_field == 1) {
-        draw_debug_text(&g_botScreen, "_", ip_input_x + 4 + strlen(g_net_port_input) * 7, port_y - 1, 0.32f, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
+        int highlight_x = ip_input_x + 4 + g_net_digit_index * 17;
+        draw_debug_text(&g_topScreen, "^", highlight_x, port_y + 8, 0.3f, C2D_Color32(0xFF, 0xFF, 0x00, 0xFF));
     }
     
-    // Numeric keypad (4 rows x 3 columns)
-    float keypad_y = port_y + 20.0f;
-    float key_w = (win_w - 20.0f) / 3.0f;
-    float key_h = 14.0f;
-    float key_spacing = 2.0f;
-    float keys_start_x = win_x + 10.0f;
-    
-    const char *keypad_layout[] = {
-        "7", "8", "9",
-        "4", "5", "6",
-        "1", "2", "3",
-        ".", "0", "Del"
-    };
-    u32 keypad_rows = 4;
-    u32 keypad_cols = 3;
-    
-    for (int row = 0; row < keypad_rows; row++) {
-        for (int col = 0; col < keypad_cols; col++) {
-            int key_idx = row * keypad_cols + col;
-            float key_x = keys_start_x + col * (key_w + key_spacing);
-            float key_y = keypad_y + row * (key_h + key_spacing);
-            
-            // Draw key background
-            u32 key_color = (key_idx == 11) ? clrDelKey : clrKeyBg;  // Red for Del key
-            C2D_DrawRectSolid(key_x, key_y, 0.46f, key_w - key_spacing, key_h, key_color);
-            C2D_DrawRectangle(key_x, key_y, 0.46f, key_w - key_spacing, key_h, clrKeyBorder, clrKeyBorder, clrKeyBorder, clrKeyBorder);
-            
-            // Draw key label
-            draw_debug_text(&g_botScreen, keypad_layout[key_idx], key_x + key_w/2 - 5, key_y + 2, 0.25f, clrText);
-        }
-    }
-    
-    // Buttons: SAVE and CLOSE
-    float btn_y = keypad_y + 4 * (key_h + key_spacing) + 5.0f;
-    float btn_w = (input_w - 5) / 2.0f;
-    
-    // SAVE button
-    C2D_DrawRectSolid(ip_input_x, btn_y, 0.46f, btn_w, 16, clrBtnBg);
-    C2D_DrawRectangle(ip_input_x, btn_y, 0.46f, btn_w, 16, clrBtnBorder, clrBtnBorder, clrBtnBorder, clrBtnBorder);
-    draw_debug_text(&g_botScreen, "SAVE", ip_input_x + 10, btn_y + 2, 0.26f, C2D_Color32(0x00, 0xFF, 0x00, 0xFF));
-    
-    // CLOSE button
-    float close_btn_x = ip_input_x + btn_w + 5.0f;
-    C2D_DrawRectSolid(close_btn_x, btn_y, 0.46f, btn_w, 16, clrBtnBg);
-    C2D_DrawRectangle(close_btn_x, btn_y, 0.46f, btn_w, 16, clrBtnBorder, clrBtnBorder, clrBtnBorder, clrBtnBorder);
-    draw_debug_text(&g_botScreen, "CLOSE", close_btn_x + 5, btn_y + 2, 0.26f, C2D_Color32(0xFF, 0x00, 0x00, 0xFF));
+    // Instructions at the bottom
+    draw_debug_text(&g_topScreen, "LEFT/RIGHT: Move  UP/DOWN: Modify  A: Save  B: Cancel", win_x + 10, port_y + 18, 0.25f, clrLabel);
 }
 
 int check_button_touch(int button_idx)
@@ -2585,130 +2535,66 @@ void handle_keyboard_input(char c)
 }
 
 // Handle input for network configuration window
-void handle_net_config_input(u32 kDown, int touch_edge)
+void handle_net_config_input(u32 kDown)
 {
-    // D-Pad up/down to switch between IP and Port fields
-    if (kDown & KEY_DUP) {
-        if (g_net_selected_field > 0) g_net_selected_field--;
-        return;
-    }
-    if (kDown & KEY_DDOWN) {
-        if (g_net_selected_field < 1) g_net_selected_field++;
-        return;
-    }
-    
     // B button closes without saving
     if (kDown & KEY_B) {
         g_net_config_open = 0;
+        g_net_digit_index = 0;
         return;
     }
     
-    // Touch input for keypad and buttons
-    if (touch_edge) {
-        // Window layout
-        float win_x = 10.0f;
-        float win_y = 20.0f;
-        float win_w = SCREEN_WIDTH_BOT - 20.0f;
-        float ip_input_x = win_x + 35.0f;
-        float input_w = win_w - 55.0f;
-        float input_h = 16.0f;
-        float field_y = win_y + 20.0f;
-        float port_y = field_y + 18.0f;
-        
-        // Check if user clicked on IP field
-        if (g_touchPos.px >= ip_input_x && g_touchPos.px < ip_input_x + input_w &&
-            g_touchPos.py >= field_y - 2 && g_touchPos.py < field_y - 2 + input_h) {
-            g_net_selected_field = 0;
-            return;
-        }
-        
-        // Check if user clicked on Port field
-        if (g_touchPos.px >= ip_input_x && g_touchPos.px < ip_input_x + input_w &&
-            g_touchPos.py >= port_y - 2 && g_touchPos.py < port_y - 2 + input_h) {
-            g_net_selected_field = 1;
-            return;
-        }
-        
-        // Keypad layout
-        float keypad_y = win_y + 58.0f;
-        float key_w = (win_w - 20.0f) / 3.0f;
-        float key_h = 14.0f;
-        float key_spacing = 2.0f;
-        float keys_start_x = win_x + 10.0f;
-        
-        // Check on the numeric keypad
-        if (g_touchPos.py >= keypad_y && g_touchPos.py < keypad_y + 4 * (key_h + key_spacing)) {
-            if (g_touchPos.px >= keys_start_x && g_touchPos.px < keys_start_x + 3 * (key_w + key_spacing)) {
-                // Determine which key was pressed
-                int col = (int)((g_touchPos.px - keys_start_x) / (key_w + key_spacing));
-                int row = (int)((g_touchPos.py - keypad_y) / (key_h + key_spacing));
-                
-                if (col >= 0 && col < 3 && row >= 0 && row < 4) {
-                    int key_idx = row * 3 + col;
-                    
-                    const char *keypad_layout[] = {
-                        "7", "8", "9",
-                        "4", "5", "6",
-                        "1", "2", "3",
-                        ".", "0", "Del"
-                    };
-                    
-                    const char *key = keypad_layout[key_idx];
-                    
-                    if (strcmp(key, "Del") == 0) {
-                        // Delete last character
-                        if (g_net_selected_field == 0) {
-                            if (strlen(g_net_ip_digits) > 0) {
-                                g_net_ip_digits[strlen(g_net_ip_digits) - 1] = '\0';
-                            }
-                        } else {
-                            if (strlen(g_net_port_input) > 0) {
-                                g_net_port_input[strlen(g_net_port_input) - 1] = '\0';
-                            }
-                        }
-                    } else if (strcmp(key, ".") == 0) {
-                        // Dot key does nothing in IP field now (we auto-add dots)
-                        // Skip it
-                    } else {
-                        // Add digit to current field
-                        if (g_net_selected_field == 0) {
-                            // IP field: only accept digits (max 12)
-                            if (strlen(g_net_ip_digits) < 12 && isdigit(key[0])) {
-                                g_net_ip_digits[strlen(g_net_ip_digits)] = key[0];
-                                g_net_ip_digits[strlen(g_net_ip_digits) + 1] = '\0';
-                            }
-                        } else {
-                            // Port field: only digits (max 5)
-                            if (strlen(g_net_port_input) < 5 && isdigit(key[0])) {
-                                g_net_port_input[strlen(g_net_port_input)] = key[0];
-                                g_net_port_input[strlen(g_net_port_input) + 1] = '\0';
-                            }
-                        }
-                    }
-                }
-                return;
+    // A button saves configuration
+    if (kDown & KEY_A) {
+        save_network_config();
+        g_net_config_open = 0;
+        g_net_digit_index = 0;
+        return;
+    }
+    
+    // D-Pad Left/Right to move between digit positions
+    if (kDown & KEY_DLEFT) {
+        if (g_net_digit_index > 0) {
+            g_net_digit_index--;
+        } else {
+            // Switch to other field (wrap around)
+            if (g_net_selected_field == 0) {
+                g_net_selected_field = 1;
+                g_net_digit_index = strlen(g_net_port_input) > 0 ? strlen(g_net_port_input) - 1 : 0;
             }
         }
-        
-        // Check SAVE and CLOSE buttons
-        float btn_y = keypad_y + 4 * (key_h + key_spacing) + 5.0f;
-        float btn_w = (input_w - 5) / 2.0f;
-        
-        // SAVE button
-        if (g_touchPos.px >= ip_input_x && g_touchPos.px < ip_input_x + btn_w &&
-            g_touchPos.py >= btn_y && g_touchPos.py < btn_y + 16) {
-            save_network_config();
-            g_net_config_open = 0;
-            return;
+        return;
+    }
+    
+    if (kDown & KEY_DRIGHT) {
+        int max_digits = (g_net_selected_field == 0) ? strlen(g_net_ip_digits) : strlen(g_net_port_input);
+        if (g_net_digit_index < max_digits - 1) {
+            g_net_digit_index++;
+        } else {
+            // Switch to other field (wrap around)
+            if (g_net_selected_field == 0) {
+                g_net_selected_field = 1;
+                g_net_digit_index = 0;
+            }
         }
-        
-        // CLOSE button
-        float close_btn_x = ip_input_x + btn_w + 5.0f;
-        if (g_touchPos.px >= close_btn_x && g_touchPos.px < close_btn_x + btn_w &&
-            g_touchPos.py >= btn_y && g_touchPos.py < btn_y + 16) {
-            g_net_config_open = 0;
-            return;
-        }
+        return;
+    }
+    
+    // D-Pad Up/Down to change digit value (0-9 with wrap)
+    if (kDown & KEY_DUP) {
+        char *field = (g_net_selected_field == 0) ? g_net_ip_digits : g_net_port_input;
+        int digit_val = field[g_net_digit_index] - '0';
+        digit_val = (digit_val + 1) % 10;
+        field[g_net_digit_index] = '0' + digit_val;
+        return;
+    }
+    
+    if (kDown & KEY_DDOWN) {
+        char *field = (g_net_selected_field == 0) ? g_net_ip_digits : g_net_port_input;
+        int digit_val = field[g_net_digit_index] - '0';
+        digit_val = (digit_val - 1 + 10) % 10;
+        field[g_net_digit_index] = '0' + digit_val;
+        return;
     }
 }
 
@@ -2717,10 +2603,10 @@ void handle_manager_input(void)
     u32 kDown = hidKeysDown();
     int touch_edge = g_isTouched && !g_wasTouched;
     
-    // If network config window is open, handle its input
+    // If network config window is open, handle its input and disable touch
     if (g_net_config_open) {
-        handle_net_config_input(kDown, touch_edge);
-        return;
+        handle_net_config_input(kDown);
+        return;  // Touch is disabled while window is open
     }
     
     if (g_renaming) {
@@ -2798,8 +2684,7 @@ void handle_manager_input(void)
                 // NET button - open network configuration window
                 g_net_config_open = 1;
                 g_net_selected_field = 0;
-                g_net_ip_cursor_pos = strlen(g_net_ip_digits);
-                g_net_port_cursor_pos = strlen(g_net_port_input);
+                g_net_digit_index = 0;
             } else if (check_button_touch(5)) {  // Button 5 = EXIT
                 // EXIT button - save if modified, then close
                 if (g_show_modified) {
