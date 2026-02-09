@@ -1731,9 +1731,9 @@ void render_bot_screen(void)
         if (f->value < 0.001f) {
             snprintf(vol_str, sizeof(vol_str), "-inf");
         } else {
-            // Logarithmic dB scale: 20*log10(value) + 10 (for +10dB max)
-            // value 0.001 → -50dB, 0.1 → -10dB, 1.0 → +10dB
-            float db = 20.0f * logf(f->value) / logf(10.0f) + 10.0f;
+            // Logarithmic dB scale: 60*log10(value/0.76)
+            // 0.76 (76%) = 0dB reference point
+            float db = 60.0f * log10f(f->value / 0.76f);
             snprintf(vol_str, sizeof(vol_str), "%.0f", db);
         }
         draw_debug_text(&g_botScreen, vol_str, f->x + f->w / 2 - 5, 30, 0.35f, clrText);
