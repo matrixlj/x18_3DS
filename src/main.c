@@ -1695,18 +1695,13 @@ float fader_value_to_db(float value)
 {
     // Calibration points from X18 specs
     // percentages: 0, 13, 26, 39, 51, 63, 76, 88, 100
-    // db_values: -inf, -50, -30, -20, -10, -5, 0, 5, 10
+    // db_values: -100, -50, -30, -20, -10, -5, 0, 5, 10
     
     float percent = value * 100.0f;
     
-    // Handle -inf case (very low values)
-    if (percent < 1.0f) {
-        return -999.0f;  // Display as -inf in rendering
-    }
-    
     // Calibration points
     float calibration_percent[] = {0, 13, 26, 39, 51, 63, 76, 88, 100};
-    float calibration_db[] = {-9999, -50, -30, -20, -10, -5, 0, 5, 10};
+    float calibration_db[] = {-100, -50, -30, -20, -10, -5, 0, 5, 10};
     
     // Find the range this percent falls into and interpolate
     for (int i = 0; i < 8; i++) {
@@ -1789,8 +1784,8 @@ void render_bot_screen(void)
         // Volume in dB (calibrated scale) - LARGER and CENTERED
         char vol_str[8];
         float db = fader_value_to_db(f->value);
-        if (db < -100.0f) {
-            snprintf(vol_str, sizeof(vol_str), "-inf");
+        if (db <= -100.0f) {
+            snprintf(vol_str, sizeof(vol_str), "−∞");  // Unicode minus + infinity symbol
         } else {
             snprintf(vol_str, sizeof(vol_str), "%.0f", db);
         }
