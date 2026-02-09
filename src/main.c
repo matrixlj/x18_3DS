@@ -1726,13 +1726,14 @@ void render_bot_screen(void)
         snprintf(label, sizeof(label), "%d", f->id);
         draw_debug_text(&g_botScreen, label, f->x + f->w / 2 - 4, 20, 0.4f, clrText);
         
-        // Volume in dB - LARGER and CENTERED
+        // Volume in dB (logarithmic scale) - LARGER and CENTERED
         char vol_str[8];
-        if (f->value < 0.01f) {
+        if (f->value < 0.001f) {
             snprintf(vol_str, sizeof(vol_str), "-inf");
         } else {
-            // Convert 0-1 range to -60 to +10 dB scale
-            float db = -60.0f + f->value * 70.0f;
+            // Logarithmic dB scale: 20*log10(value) + 10 (for +10dB max)
+            // value 0.001 → -50dB, 0.1 → -10dB, 1.0 → +10dB
+            float db = 20.0f * logf(f->value) / logf(10.0f) + 10.0f;
             snprintf(vol_str, sizeof(vol_str), "%.0f", db);
         }
         draw_debug_text(&g_botScreen, vol_str, f->x + f->w / 2 - 5, 30, 0.35f, clrText);
