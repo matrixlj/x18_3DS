@@ -44,7 +44,8 @@
 #define BTN_DELETE 1
 #define BTN_DUPLICATE 2
 #define BTN_RENAME 3
-#define NUM_BUTTONS 4
+#define BTN_NET 4
+#define NUM_BUTTONS 5
 
 typedef struct {
     int id;
@@ -172,6 +173,14 @@ int g_mixer_port = 10023;                       // X32/X18 OSC port
 int g_osc_connected = 0;                        // 1 = socket initialized
 int g_osc_verbose = 1;                          // 1 = log OSC commands
 
+// Network Config Window state
+int g_net_config_open = 0;          // 0=closed, 1=open
+char g_net_ip_input[16] = "10.10.99.112";      // IP address input
+char g_net_port_input[6] = "10023";             // Port input
+int g_net_selected_field = 0;       // 0=IP, 1=Port
+int g_net_ip_cursor_pos = 0;        // Cursor position in IP field
+int g_net_port_cursor_pos = 0;      // Cursor position in Port field
+
 // EQ Window state
 int g_eq_window_open = 0;           // 0=closed, 1=open
 int g_eq_editing_channel = 0;       // Current channel being edited (0-15)
@@ -187,6 +196,10 @@ void apply_step_to_faders(int step_idx);
 void save_show_to_file(Show *show);
 void add_step(void);
 void duplicate_step(void);
+void load_network_config(void);
+void save_network_config(void);
+void handle_net_config_input(u32 kDown, int touch_edge);
+void render_net_config_window(void);
 
 // ============================================================================
 // OSC CORE FUNCTIONS (Phase 1 - Send Only)
@@ -907,6 +920,67 @@ void list_available_shows(void)
     closedir(dir);
 }
 
+// Load network configuration from file
+void load_network_config(void)
+{
+    FILE *f = fopen("/3ds/x18mixer/net.txt", "r");
+    if (!f) {
+        // Use defaults if file doesn't exist
+        strcpy(g_net_ip_input, g_mixer_host);
+        snprintf(g_net_port_input, sizeof(g_net_port_input), "%d", g_mixer_port);
+        return;
+    }
+    
+    // Parse config file: "IP PORT"
+    char line[256];
+    if (fgets(line, sizeof(line), f)) {
+        char ip[16];
+        int port;
+        if (sscanf(line, "%15s %d", ip, &port) == 2) {
+            strcpy(g_net_ip_input, ip);
+            snprintf(g_net_port_input, sizeof(g_net_port_input), "%d", port);
+            
+            // Update global OSC configuration
+            strcpy(g_mixer_host, ip);
+            g_mixer_port = port;
+        }
+    }
+    fclose(f);
+}
+
+// Save network configuration to file
+void save_network_config(void)
+{
+    create_shows_directory();
+    
+    FILE *f = fopen("/3ds/x18mixer/net.txt", "w");
+    if (!f) {
+        snprintf(g_save_status, sizeof(g_save_status), "ERROR: Cannot save net.txt");
+        g_save_status_timer = 120;
+        return;
+    }
+    
+    // Parse and validate port
+    int port = atoi(g_net_port_input);
+    if (port <= 0 || port > 65535) {
+        port = 10023;  // Default
+    }
+    
+    // Write IP and port
+    fprintf(f, "%s %d\n", g_net_ip_input, port);
+    
+    fflush(f);
+    fsync(fileno(f));
+    fclose(f);
+    
+    // Update global OSC configuration
+    strcpy(g_mixer_host, g_net_ip_input);
+    g_mixer_port = port;
+    
+    snprintf(g_save_status, sizeof(g_save_status), "Network config saved: %s:%d", g_mixer_host, g_mixer_port);
+    g_save_status_timer = 120;
+}
+
 void delete_show_file(const char *filename)
 {
     if (!filename) return;
@@ -1291,6 +1365,9 @@ void init_graphics(void)
     
     // Initialize OSC (Phase 1)
     osc_init();
+    
+    // Load network configuration
+    load_network_config();
     
     // Mount RomFS for loading embedded assets (required before accessing romfs:/)
     romfsInit();
@@ -2155,27 +2232,109 @@ void render_show_manager(void)
         list_y += 18.0f;
     }
     
-    // Bottom buttons (now 5: LOAD, DEL, DUP, REN, EXIT)
+    // Bottom buttons (now 6: LOAD, DEL, DUP, REN, NET, EXIT)
     float btn_y = 210.0f;
-    float btn_width = SCREEN_WIDTH_BOT / 5.0f;
-    const char *btn_labels[] = {"LOAD", "DEL", "DUP", "REN", "EXIT"};
+    float btn_width = SCREEN_WIDTH_BOT / 6.0f;
+    const char *btn_labels[] = {"LOAD", "DEL", "DUP", "REN", "NET", "EXIT"};
     u32 clrExit = C2D_Color32(0xFF, 0x00, 0x00, 0xFF);  // Red for exit button
+    u32 clrNet = C2D_Color32(0x00, 0xFF, 0xFF, 0xFF);   // Cyan for net button
     
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 6; i++) {
         float btn_x = i * btn_width;
         C2D_DrawRectSolid(btn_x, btn_y, 0.5f, btn_width - 1, 30, clrBtnBg);
         C2D_DrawRectangle(btn_x, btn_y, 0.5f, btn_width - 1, 30, clrBorder, clrBorder, clrBorder, clrBorder);
         
-        u32 btn_text_color = (i == 4) ? clrExit : clrText;  // Red for EXIT
+        u32 btn_text_color = clrText;
+        if (i == 5) btn_text_color = clrExit;     // Red for EXIT
+        else if (i == 4) btn_text_color = clrNet;  // Cyan for NET
+        
         draw_debug_text(&g_botScreen, btn_labels[i], btn_x + 5, btn_y + 6, 0.28f, btn_text_color);
     }
+}
+
+// Render network configuration window (overlay on show manager)
+void render_net_config_window(void)
+{
+    if (!g_net_config_open) return;
+    
+    // Overlay background (semi-transparent dark)
+    C2D_DrawRectSolid(0, 0, 0.4f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, C2D_Color32(0x00, 0x00, 0x00, 0xCC));
+    
+    // Window background
+    float win_x = 20.0f;
+    float win_y = 40.0f;
+    float win_w = SCREEN_WIDTH_BOT - 40.0f;
+    float win_h = 130.0f;
+    
+    u32 clrWinBg = C2D_Color32(0x30, 0x30, 0x50, 0xFF);
+    u32 clrWinBorder = C2D_Color32(0x80, 0x80, 0xFF, 0xFF);
+    u32 clrText = C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF);
+    u32 clrLabel = C2D_Color32(0x80, 0xFF, 0xFF, 0xFF);
+    u32 clrInputBg = C2D_Color32(0x15, 0x15, 0x25, 0xFF);
+    u32 clrBtnBg = C2D_Color32(0x40, 0x40, 0x60, 0xFF);
+    u32 clrBtnBorder = C2D_Color32(0x60, 0x60, 0x80, 0xFF);
+    
+    C2D_DrawRectSolid(win_x, win_y, 0.45f, win_w, win_h, clrWinBg);
+    C2D_DrawRectangle(win_x, win_y, 0.45f, win_w, win_h, clrWinBorder, clrWinBorder, clrWinBorder, clrWinBorder);
+    
+    // Title
+    draw_debug_text(&g_botScreen, "Network Config", win_x + 10, win_y + 5, 0.35f, clrLabel);
+    
+    // IP label and input box
+    float field_y = win_y + 25.0f;
+    draw_debug_text(&g_botScreen, "IP:", win_x + 10, field_y, 0.3f, clrLabel);
+    
+    float ip_input_x = win_x + 35.0f;
+    float input_w = win_w - 55.0f;
+    float input_h = 18.0f;
+    
+    C2D_DrawRectSolid(ip_input_x, field_y - 2, 0.46f, input_w, input_h, clrInputBg);
+    C2D_DrawRectangle(ip_input_x, field_y - 2, 0.46f, input_w, input_h, clrWinBorder, clrWinBorder, clrWinBorder, clrWinBorder);
+    
+    u32 ip_text_color = (g_net_selected_field == 0) ? C2D_Color32(0xFF, 0xFF, 0x00, 0xFF) : clrText;
+    draw_debug_text(&g_botScreen, g_net_ip_input, ip_input_x + 4, field_y - 1, 0.28f, ip_text_color);
+    
+    // Cursor in IP field
+    if (g_net_selected_field == 0) {
+        draw_debug_text(&g_botScreen, "_", ip_input_x + 4 + g_net_ip_cursor_pos * 7, field_y - 1, 0.28f, ip_text_color);
+    }
+    
+    // Port label and input box
+    float port_y = field_y + 25.0f;
+    draw_debug_text(&g_botScreen, "Port:", win_x + 10, port_y, 0.3f, clrLabel);
+    
+    C2D_DrawRectSolid(ip_input_x, port_y - 2, 0.46f, input_w, input_h, clrInputBg);
+    C2D_DrawRectangle(ip_input_x, port_y - 2, 0.46f, input_w, input_h, clrWinBorder, clrWinBorder, clrWinBorder, clrWinBorder);
+    
+    u32 port_text_color = (g_net_selected_field == 1) ? C2D_Color32(0xFF, 0xFF, 0x00, 0xFF) : clrText;
+    draw_debug_text(&g_botScreen, g_net_port_input, ip_input_x + 4, port_y - 1, 0.28f, port_text_color);
+    
+    // Cursor in Port field
+    if (g_net_selected_field == 1) {
+        draw_debug_text(&g_botScreen, "_", ip_input_x + 4 + g_net_port_cursor_pos * 7, port_y - 1, 0.28f, port_text_color);
+    }
+    
+    // Buttons: SAVE and CLOSE
+    float btn_y = port_y + 25.0f;
+    float btn_w = (input_w - 5) / 2.0f;
+    
+    // SAVE button
+    C2D_DrawRectSolid(ip_input_x, btn_y, 0.46f, btn_w, 18, clrBtnBg);
+    C2D_DrawRectangle(ip_input_x, btn_y, 0.46f, btn_w, 18, clrBtnBorder, clrBtnBorder, clrBtnBorder, clrBtnBorder);
+    draw_debug_text(&g_botScreen, "SAVE", ip_input_x + 10, btn_y + 2, 0.28f, C2D_Color32(0x00, 0xFF, 0x00, 0xFF));
+    
+    // CLOSE button
+    float close_btn_x = ip_input_x + btn_w + 5.0f;
+    C2D_DrawRectSolid(close_btn_x, btn_y, 0.46f, btn_w, 18, clrBtnBg);
+    C2D_DrawRectangle(close_btn_x, btn_y, 0.46f, btn_w, 18, clrBtnBorder, clrBtnBorder, clrBtnBorder, clrBtnBorder);
+    draw_debug_text(&g_botScreen, "CLOSE", close_btn_x + 5, btn_y + 2, 0.28f, C2D_Color32(0xFF, 0x00, 0x00, 0xFF));
 }
 
 int check_button_touch(int button_idx)
 {
     if (!g_isTouched) return 0;
     
-    float btn_width = SCREEN_WIDTH_BOT / 5.0f;  // Now 5 buttons
+    float btn_width = SCREEN_WIDTH_BOT / 6.0f;  // Now 6 buttons
     float btn_x = button_idx * btn_width;
     float btn_y = 210.0f;
     
@@ -2317,10 +2476,82 @@ void handle_keyboard_input(char c)
     }
 }
 
+// Handle input for network configuration window
+void handle_net_config_input(u32 kDown, int touch_edge)
+{
+    // D-Pad left/right to move cursor
+    if (kDown & KEY_DLEFT) {
+        if (g_net_selected_field == 0) {
+            if (g_net_ip_cursor_pos > 0) g_net_ip_cursor_pos--;
+        } else {
+            if (g_net_port_cursor_pos > 0) g_net_port_cursor_pos--;
+        }
+        return;
+    }
+    if (kDown & KEY_DRIGHT) {
+        if (g_net_selected_field == 0) {
+            if (g_net_ip_cursor_pos < strlen(g_net_ip_input)) g_net_ip_cursor_pos++;
+        } else {
+            if (g_net_port_cursor_pos < strlen(g_net_port_input)) g_net_port_cursor_pos++;
+        }
+        return;
+    }
+    
+    // D-Pad up/down to switch between IP and Port fields
+    if (kDown & KEY_DUP) {
+        if (g_net_selected_field > 0) g_net_selected_field--;
+        return;
+    }
+    if (kDown & KEY_DDOWN) {
+        if (g_net_selected_field < 1) g_net_selected_field++;
+        return;
+    }
+    
+    // B button closes without saving
+    if (kDown & KEY_B) {
+        g_net_config_open = 0;
+        return;
+    }
+    
+    // Touch input for buttons
+    if (touch_edge) {
+        float win_x = 20.0f;
+        float win_y = 40.0f;
+        float win_w = SCREEN_WIDTH_BOT - 40.0f;
+        
+        float input_w = win_w - 55.0f;
+        float ip_input_x = win_x + 35.0f;
+        float btn_y = win_y + 75.0f;  // Approximate button Y
+        float btn_w = (input_w - 5) / 2.0f;
+        
+        // SAVE button
+        if (g_touchPos.px >= ip_input_x && g_touchPos.px < ip_input_x + btn_w &&
+            g_touchPos.py >= btn_y && g_touchPos.py < btn_y + 18) {
+            save_network_config();
+            g_net_config_open = 0;
+            return;
+        }
+        
+        // CLOSE button
+        float close_btn_x = ip_input_x + btn_w + 5.0f;
+        if (g_touchPos.px >= close_btn_x && g_touchPos.px < close_btn_x + btn_w &&
+            g_touchPos.py >= btn_y && g_touchPos.py < btn_y + 18) {
+            g_net_config_open = 0;
+            return;
+        }
+    }
+}
+
 void handle_manager_input(void)
 {
     u32 kDown = hidKeysDown();
     int touch_edge = g_isTouched && !g_wasTouched;
+    
+    // If network config window is open, handle its input
+    if (g_net_config_open) {
+        handle_net_config_input(kDown, touch_edge);
+        return;
+    }
     
     if (g_renaming) {
         // Handle renaming input
@@ -2393,7 +2624,13 @@ void handle_manager_input(void)
                     g_rename_input_pos = strlen(g_new_name);
                     g_renaming = 1;
                 }
-            } else if (check_button_touch(4)) {  // Button 4 = EXIT
+            } else if (check_button_touch(BTN_NET)) {
+                // NET button - open network configuration window
+                g_net_config_open = 1;
+                g_net_selected_field = 0;
+                g_net_ip_cursor_pos = strlen(g_net_ip_input);
+                g_net_port_cursor_pos = strlen(g_net_port_input);
+            } else if (check_button_touch(5)) {  // Button 5 = EXIT
                 // EXIT button - save if modified, then close
                 if (g_show_modified) {
                     save_show_to_file(&g_current_show);
@@ -2414,6 +2651,10 @@ void render_frame(void)
         render_bot_screen();  // Always show mixer on bottom screen
     } else {
         render_show_manager();
+        // Render network config window if open
+        if (g_net_config_open) {
+            render_net_config_window();
+        }
     }
     
     C3D_FrameEnd(0);
