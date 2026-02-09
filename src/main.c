@@ -2270,9 +2270,6 @@ void render_net_config_window(void)
 {
     if (!g_net_config_open) return;
     
-    // Overlay background (semi-transparent dark)
-    C2D_DrawRectSolid(0, 0, 0.4f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, C2D_Color32(0x00, 0x00, 0x00, 0xCC));
-    
     // Window background (larger to accommodate keypad)
     float win_x = 10.0f;
     float win_y = 20.0f;
@@ -2304,8 +2301,10 @@ void render_net_config_window(void)
     float input_w = win_w - 55.0f;
     float input_h = 16.0f;
     
-    C2D_DrawRectSolid(ip_input_x, field_y - 2, 0.46f, input_w, input_h, clrInputBg);
-    C2D_DrawRectangle(ip_input_x, field_y - 2, 0.46f, input_w, input_h, clrWinBorder, clrWinBorder, clrWinBorder, clrWinBorder);
+    u32 ip_bg_color = (g_net_selected_field == 0) ? C2D_Color32(0x25, 0x25, 0x40, 0xFF) : clrInputBg;
+    u32 ip_border_color = (g_net_selected_field == 0) ? C2D_Color32(0xFF, 0xFF, 0x00, 0xFF) : clrWinBorder;
+    C2D_DrawRectSolid(ip_input_x, field_y - 2, 0.46f, input_w, input_h, ip_bg_color);
+    C2D_DrawRectangle(ip_input_x, field_y - 2, 0.46f, input_w, input_h, ip_border_color, ip_border_color, ip_border_color, ip_border_color);
     
     u32 ip_text_color = (g_net_selected_field == 0) ? C2D_Color32(0xFF, 0xFF, 0x00, 0xFF) : clrText;
     draw_debug_text(&g_botScreen, g_net_ip_input, ip_input_x + 4, field_y - 1, 0.26f, ip_text_color);
@@ -2319,8 +2318,10 @@ void render_net_config_window(void)
     float port_y = field_y + 18.0f;
     draw_debug_text(&g_botScreen, "Port:", win_x + 10, port_y, 0.3f, clrLabel);
     
-    C2D_DrawRectSolid(ip_input_x, port_y - 2, 0.46f, input_w, input_h, clrInputBg);
-    C2D_DrawRectangle(ip_input_x, port_y - 2, 0.46f, input_w, input_h, clrWinBorder, clrWinBorder, clrWinBorder, clrWinBorder);
+    u32 port_bg_color = (g_net_selected_field == 1) ? C2D_Color32(0x25, 0x25, 0x40, 0xFF) : clrInputBg;
+    u32 port_border_color = (g_net_selected_field == 1) ? C2D_Color32(0xFF, 0xFF, 0x00, 0xFF) : clrWinBorder;
+    C2D_DrawRectSolid(ip_input_x, port_y - 2, 0.46f, input_w, input_h, port_bg_color);
+    C2D_DrawRectangle(ip_input_x, port_y - 2, 0.46f, input_w, input_h, port_border_color, port_border_color, port_border_color, port_border_color);
     
     u32 port_text_color = (g_net_selected_field == 1) ? C2D_Color32(0xFF, 0xFF, 0x00, 0xFF) : clrText;
     draw_debug_text(&g_botScreen, g_net_port_input, ip_input_x + 4, port_y - 1, 0.26f, port_text_color);
@@ -2568,6 +2569,23 @@ void handle_net_config_input(u32 kDown, int touch_edge)
         float win_w = SCREEN_WIDTH_BOT - 20.0f;
         float ip_input_x = win_x + 35.0f;
         float input_w = win_w - 55.0f;
+        float input_h = 16.0f;
+        float field_y = win_y + 20.0f;
+        float port_y = field_y + 18.0f;
+        
+        // Check if user clicked on IP field
+        if (g_touchPos.px >= ip_input_x && g_touchPos.px < ip_input_x + input_w &&
+            g_touchPos.py >= field_y - 2 && g_touchPos.py < field_y - 2 + input_h) {
+            g_net_selected_field = 0;
+            return;
+        }
+        
+        // Check if user clicked on Port field
+        if (g_touchPos.px >= ip_input_x && g_touchPos.px < ip_input_x + input_w &&
+            g_touchPos.py >= port_y - 2 && g_touchPos.py < port_y - 2 + input_h) {
+            g_net_selected_field = 1;
+            return;
+        }
         
         // Keypad layout
         float keypad_y = win_y + 58.0f;
