@@ -720,9 +720,12 @@ void init_mixer(void)
 int touch_hits_fader(touchPosition touch, Fader *fader, float *out_value)
 {
     if (touch.px >= fader->x && touch.px < fader->x + fader->w) {
-        // Fader track limits (grip movement range)
-        float fader_top = 45;
-        float fader_bottom = 205;
+        // Grip movement range: matches the actual grip Y positions in render_bot_screen
+        // fader_bottom=205, fader_height=160, so grip goes from:
+        // value=1: grip_y = 205 - (160*1.0) = 45
+        // value=0: grip_y = 205 - (160*0.15) = 181
+        float fader_top = 45;      // Grip top position (value = 1.0)
+        float fader_bottom = 181;  // Grip bottom position (value = 0.0)
         
         if (touch.py >= fader_top && touch.py <= fader_bottom) {
             float fader_height = fader_bottom - fader_top;
