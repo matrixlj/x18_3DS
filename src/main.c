@@ -1343,7 +1343,8 @@ float calculate_eq_response(EQBand *band, float freq_hz)
             // Response: G = (f/f0)^order / (1 + (f0/f)^order)
             float order = band->q_factor * 2.0f;  // Q determines steepness
             float hp_response = powf(delta, order) / (1.0f + powf(1.0f / delta, order));
-            response = (hp_response - 0.5f) * 2.0f * band->gain * 0.75f;
+            // Invert: shows negative at low freqs (cutting) when gain > 0
+            response = -band->gain * (1.0f - hp_response) * 2.0f;
             break;
         }
         case EQ_HCUT: // High Cut (Low Pass) - smooth low-pass filter
@@ -1352,7 +1353,8 @@ float calculate_eq_response(EQBand *band, float freq_hz)
             // Response: G = 1 / (1 + (f/f0)^order)
             float order = band->q_factor * 2.0f;  // Q determines steepness
             float lp_response = 1.0f / (1.0f + powf(delta, order));
-            response = (lp_response - 0.5f) * 2.0f * band->gain * 0.75f;
+            // Invert: shows negative at high freqs (cutting) when gain > 0
+            response = -band->gain * (1.0f - lp_response) * 2.0f;
             break;
         }
         default:
