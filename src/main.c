@@ -2302,6 +2302,9 @@ void render_net_config_window(void)
 {
     if (!g_net_config_open) return;
     
+    // Switch to top screen context
+    C2D_SceneBegin(g_topScreen.target);
+    
     // Window background (on top screen)
     float win_x = 10.0f;
     float win_y = 20.0f;
@@ -2316,6 +2319,7 @@ void render_net_config_window(void)
     u32 clrText = C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF);
     u32 clrLabel = C2D_Color32(0x80, 0xFF, 0xFF, 0xFF);
     u32 clrInputBg = C2D_Color32(0x15, 0x15, 0x25, 0xFF);
+    u32 clrSelectedDigit = C2D_Color32(0xFF, 0x00, 0x00, 0xFF);  // Red for selected digit
     
     C2D_DrawRectSolid(win_x, win_y, 0.45f, win_w, win_h, clrWinBg);
     C2D_DrawRectangle(win_x, win_y, 0.45f, win_w, win_h, clrWinBorder, clrWinBorder, clrWinBorder, clrWinBorder);
@@ -2336,17 +2340,37 @@ void render_net_config_window(void)
     C2D_DrawRectSolid(ip_input_x, field_y - 2, 0.46f, input_w, input_h, ip_bg_color);
     C2D_DrawRectangle(ip_input_x, field_y - 2, 0.46f, input_w, input_h, ip_border_color, ip_border_color, ip_border_color, ip_border_color);
     
-    // Format and display IP address
+    // Format and display IP address with selected digit in red
     char ip_display[20];
     ip_digits_to_display(g_net_ip_digits, ip_display, sizeof(ip_display));
-    u32 ip_text_color = (g_net_selected_field == 0) ? C2D_Color32(0x00, 0x00, 0x00, 0xFF) : clrText;
-    draw_debug_text(&g_topScreen, ip_display, ip_input_x + 4, field_y - 1, 0.32f, ip_text_color);
     
-    // Show which digit is selected in IP field
+    // Draw IP address character by character, highlighting the selected digit in red
     if (g_net_selected_field == 0) {
-        // Highlight the selected digit
-        int highlight_x = ip_input_x + 4 + g_net_digit_index * 17;  // Each digit+dot is about 17px wide in display
-        draw_debug_text(&g_topScreen, "^", highlight_x, field_y + 8, 0.3f, C2D_Color32(0xFF, 0xFF, 0x00, 0xFF));
+        // Draw IP with selected digit highlighted
+        int char_idx = 0;
+        int digit_idx = 0;
+        for (int i = 0; ip_display[i] != '\0'; i++) {
+            char ch = ip_display[i];
+            u32 color = clrText;
+            
+            // Check if this is the selected digit position
+            if (ch != '.' && digit_idx == g_net_digit_index) {
+                color = clrSelectedDigit;  // Red for selected
+            }
+            
+            // Only count non-dot characters as digit positions
+            if (ch != '.') {
+                digit_idx++;
+            }
+            
+            // Draw the character
+            char char_str[2] = {ch, '\0'};
+            draw_debug_text(&g_topScreen, char_str, ip_input_x + 4 + char_idx * 9, field_y - 1, 0.32f, color);
+            char_idx++;
+        }
+    } else {
+        u32 ip_text_color = clrText;
+        draw_debug_text(&g_topScreen, ip_display, ip_input_x + 4, field_y - 1, 0.32f, ip_text_color);
     }
     
     // Port label and display
@@ -2358,17 +2382,26 @@ void render_net_config_window(void)
     C2D_DrawRectSolid(ip_input_x, port_y - 2, 0.46f, input_w, input_h, port_bg_color);
     C2D_DrawRectangle(ip_input_x, port_y - 2, 0.46f, input_w, input_h, port_border_color, port_border_color, port_border_color, port_border_color);
     
-    u32 port_text_color = (g_net_selected_field == 1) ? C2D_Color32(0x00, 0x00, 0x00, 0xFF) : clrText;
-    draw_debug_text(&g_topScreen, g_net_port_input, ip_input_x + 4, port_y - 1, 0.32f, port_text_color);
-    
-    // Show which digit is selected in Port field
+    // Draw port with selected digit highlighted in red
     if (g_net_selected_field == 1) {
-        int highlight_x = ip_input_x + 4 + g_net_digit_index * 17;
-        draw_debug_text(&g_topScreen, "^", highlight_x, port_y + 8, 0.3f, C2D_Color32(0xFF, 0xFF, 0x00, 0xFF));
+        int char_idx = 0;
+        for (int i = 0; g_net_port_input[i] != '\0'; i++) {
+            char ch = g_net_port_input[i];
+            u32 color = (i == g_net_digit_index) ? clrSelectedDigit : clrText;
+            
+            char char_str[2] = {ch, '\0'};
+            draw_debug_text(&g_topScreen, char_str, ip_input_x + 4 + char_idx * 9, port_y - 1, 0.32f, color);
+            char_idx++;
+        }
+    } else {
+        draw_debug_text(&g_topScreen, g_net_port_input, ip_input_x + 4, port_y - 1, 0.32f, clrText);
     }
     
     // Instructions at the bottom
     draw_debug_text(&g_topScreen, "LEFT/RIGHT: Move  UP/DOWN: Modify  A: Save  B: Cancel", win_x + 10, port_y + 18, 0.25f, clrLabel);
+    
+    // Restore bottom screen context
+    C2D_SceneBegin(g_botScreen.target);
 }
 
 int check_button_touch(int button_idx)
