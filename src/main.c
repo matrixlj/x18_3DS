@@ -1690,6 +1690,38 @@ void render_keyboard(void)
     draw_debug_text(&g_botScreen, "Esc", 10 + btn_width * 3 + 10, kb_y + 2, 0.3f, clrRed);
 }
 
+// Convert fader value (0-1) to dB using calibration points
+float fader_value_to_db(float value)
+{
+    // Calibration points from X18 specs
+    // percentages: 0, 13, 26, 39, 51, 63, 76, 88, 100
+    // db_values: -inf, -50, -30, -20, -10, -5, 0, 5, 10
+    
+    float percent = value * 100.0f;
+    
+    // Handle -inf case (very low values)
+    if (percent < 1.0f) {
+        return -999.0f;  // Display as -inf in rendering
+    }
+    
+    // Calibration points
+    float calibration_percent[] = {0, 13, 26, 39, 51, 63, 76, 88, 100};
+    float calibration_db[] = {-9999, -50, -30, -20, -10, -5, 0, 5, 10};
+    
+    // Find the range this percent falls into and interpolate
+    for (int i = 0; i < 8; i++) {
+        if (percent >= calibration_percent[i] && percent <= calibration_percent[i+1]) {
+            // Linear interpolation between calibration points
+            float t = (percent - calibration_percent[i]) / (calibration_percent[i+1] - calibration_percent[i]);
+            float db = calibration_db[i] + t * (calibration_db[i+1] - calibration_db[i]);
+            return db;
+        }
+    }
+    
+    // Default to max if > 100
+    return 10.0f;
+}
+
 void render_bot_screen(void)
 {
     // Safety: Don't render if not fully initialized
@@ -1754,14 +1786,12 @@ void render_bot_screen(void)
         snprintf(label, sizeof(label), "%d", f->id);
         draw_debug_text(&g_botScreen, label, f->x + f->w / 2 - 4, 20, 0.4f, clrText);
         
-        // Volume in dB (logarithmic scale) - LARGER and CENTERED
+        // Volume in dB (calibrated scale) - LARGER and CENTERED
         char vol_str[8];
-        if (f->value < 0.001f) {
+        float db = fader_value_to_db(f->value);
+        if (db < -100.0f) {
             snprintf(vol_str, sizeof(vol_str), "-inf");
         } else {
-            // Logarithmic dB scale: 60*log10(value/0.76)
-            // 0.76 (76%) = 0dB reference point
-            float db = 60.0f * log10f(f->value / 0.76f);
             snprintf(vol_str, sizeof(vol_str), "%.0f", db);
         }
         draw_debug_text(&g_botScreen, vol_str, f->x + f->w / 2 - 5, 30, 0.35f, clrText);
