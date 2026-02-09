@@ -1721,15 +1721,15 @@ void render_bot_screen(void)
         draw_3d_button(f->x + 1, 5, f->w - 2, 14, eq_color_main, eq_color_light, eq_color_dark, f->eq_enabled);
         draw_debug_text(&g_botScreen, "Eq", f->x + 2, 7, 0.25f, clrText);
         
-        // Channel number (below EQ button)
+        // Channel number (below EQ button) - LARGER and CENTERED
         char label[4];
         snprintf(label, sizeof(label), "%d", f->id);
-        draw_debug_text(&g_botScreen, label, f->x + 2, 22, 0.25f, clrText);
+        draw_debug_text(&g_botScreen, label, f->x + f->w / 2 - 4, 20, 0.4f, clrText);
         
-        // Volume percentage
+        // Volume percentage - LARGER and CENTERED
         char vol_str[8];
         snprintf(vol_str, sizeof(vol_str), "%d%%", (int)(f->value * 100));
-        draw_debug_text(&g_botScreen, vol_str, f->x + 1, 32, 0.2f, clrText);
+        draw_debug_text(&g_botScreen, vol_str, f->x + f->w / 2 - 5, 30, 0.35f, clrText);
         
         // ===== FADER TRACK WITH SCALE MARKS =====
         float fader_top = 45;
