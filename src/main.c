@@ -376,9 +376,50 @@ void osc_shutdown(void)
     }
 }
 
+// Send complete step data via OSC (all 16 faders + 16 mutes + all EQ data)
+void send_step_osc(int step_idx)
+{
+    if (step_idx < 0 || step_idx >= g_current_show.num_steps) return;
+    if (!g_osc_connected) return;
+    
+    Step *step = &g_current_show.steps[step_idx];
+    
+    if (g_osc_verbose) {
+        printf("[OSC] === Sending Step %d ===\n", step_idx + 1);
+    }
+    
+    // Send all 16 faders
+    for (int ch = 0; ch < 16; ch++) {
+        osc_send_fader(ch, step->volumes[ch]);
+    }
+    
+    // Send all 16 mutes
+    for (int ch = 0; ch < 16; ch++) {
+        osc_send_mute(ch, step->mutes[ch]);
+    }
+    
+    // Send all EQ data (5 bands per channel)
+    for (int ch = 0; ch < 16; ch++) {
+        ChannelEQ *eq = &step->eqs[ch];
+        for (int band = 0; band < 5; band++) {
+            EQBand *eq_band = &eq->bands[band];
+            // Send EQ band type, frequency, gain, Q factor
+            osc_send_eq_param(ch, band, "type", (float)eq_band->type);
+            osc_send_eq_param(ch, band, "f", eq_band->frequency);
+            osc_send_eq_param(ch, band, "g", eq_band->gain);
+            osc_send_eq_param(ch, band, "q", eq_band->q_factor);
+        }
+    }
+    
+    if (g_osc_verbose) {
+        printf("[OSC] Step %d complete (16 faders + 16 mutes + 80 EQ params)\n", step_idx + 1);
+    }
+}
+
 // ============================================================================
 // SHOW/PRESET FUNCTIONS
 // ============================================================================
+
 
 // Initialize EQ with default values
 void init_channel_eq(ChannelEQ *eq)
@@ -983,7 +1024,6 @@ void update_mixer_touch(void)
             // Check fader first (highest priority - drag interaction)
             if (touch_hits_fader(g_touchPos, &g_faders[i], &val)) {
                 g_faders[i].value = val;
-                osc_send_fader(i, val);  // Send OSC update (Phase 1)
                 g_touched_fader_index = i;  // Mark this fader as being touched
                 return;  // Stop checking other faders
             }
@@ -991,7 +1031,6 @@ void update_mixer_touch(void)
             // Check mute button
             if (touch_hits_mute_button(g_touchPos, &g_faders[i])) {
                 g_faders[i].muted = 1 - g_faders[i].muted;
-                osc_send_mute(i, g_faders[i].muted);  // Send OSC update (Phase 1)
                 return;  // Stop checking other faders
             }
             
@@ -1011,7 +1050,6 @@ void update_mixer_touch(void)
         float val;
         if (touch_hits_fader(g_touchPos, &g_faders[g_touched_fader_index], &val)) {
             g_faders[g_touched_fader_index].value = val;
-            osc_send_fader(g_touched_fader_index, val);  // Send OSC update (Phase 1)
         }
     }
 }
@@ -2419,6 +2457,13 @@ int main(int argc, char* argv[])
                     // Handle new show naming input
                     handle_new_show_input();
                 } else {
+                    // A button: Send current step OSC data and advance to next step
+                    if (kDown & KEY_A) {
+                        send_step_osc(g_selected_step);
+                        g_selected_step = (g_selected_step + 1) % g_current_show.num_steps;
+                        apply_step_to_faders(g_selected_step);
+                    }
+                    
                     // SELECT button: Start creating new show
                     if (kDown & KEY_SELECT) {
                         g_creating_new_show = 1;
