@@ -6,6 +6,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 // ============================================================================
 // SCREEN DEFINITIONS
@@ -158,6 +161,17 @@ int g_should_exit = 0;  // Set to 1 to signal app should close
 char g_save_status[128] = "Ready";
 int g_save_status_timer = 0;
 
+// ============================================================================
+// OSC NETWORKING GLOBALS (Phase 1)
+// ============================================================================
+
+int g_osc_socket = -1;                           // UDP socket for OSC
+struct sockaddr_in g_mixer_addr = {0};          // Target mixer address
+char g_mixer_host[16] = "10.10.99.112";         // X32 emulator IP (change for real X18)
+int g_mixer_port = 10023;                       // X32/X18 OSC port
+int g_osc_connected = 0;                        // 1 = socket initialized
+int g_osc_verbose = 1;                          // 1 = log OSC commands
+
 // EQ Window state
 int g_eq_window_open = 0;           // 0=closed, 1=open
 int g_eq_editing_channel = 0;       // Current channel being edited (0-15)
@@ -173,6 +187,194 @@ void apply_step_to_faders(int step_idx);
 void save_show_to_file(Show *show);
 void add_step(void);
 void duplicate_step(void);
+
+// ============================================================================
+// OSC CORE FUNCTIONS (Phase 1 - Send Only)
+// ============================================================================
+
+// Initialize OSC connection
+void osc_init(void)
+{
+    // Create UDP socket
+    g_osc_socket = socket(AF_INET, SOCK_DGRAM, 0);
+    if (g_osc_socket < 0) {
+        if (g_osc_verbose) printf("[OSC] ERROR: Failed to create socket\n");
+        return;
+    }
+    
+    // Setup mixer address
+    memset(&g_mixer_addr, 0, sizeof(g_mixer_addr));
+    g_mixer_addr.sin_family = AF_INET;
+    g_mixer_addr.sin_port = htons(g_mixer_port);
+    
+    if (inet_pton(AF_INET, g_mixer_host, &g_mixer_addr.sin_addr) <= 0) {
+        if (g_osc_verbose) printf("[OSC] ERROR: Invalid IP address\n");
+        close(g_osc_socket);
+        g_osc_socket = -1;
+        return;
+    }
+    
+    g_osc_connected = 1;
+    if (g_osc_verbose) printf("[OSC] Connected to %s:%d\n", g_mixer_host, g_mixer_port);
+}
+
+// Send OSC message (generic)
+int osc_send(const uint8_t *packet, int packet_size)
+{
+    if (g_osc_socket < 0 || !g_osc_connected) {
+        return -1;
+    }
+    
+    int n = sendto(g_osc_socket, packet, packet_size, 0, 
+                   (struct sockaddr*)&g_mixer_addr, sizeof(g_mixer_addr));
+    
+    return n;
+}
+
+// Send fader value for a channel
+void osc_send_fader(int channel, float value)
+{
+    // Validate channel
+    if (channel < 0 || channel >= 16) return;
+    
+    // Build OSC message: /ch/XX/mix/fader ,f <value>
+    // Format: address(null-padded) + ",f\0\0" + float(4 bytes)
+    
+    uint8_t packet[32];
+    int pos = 0;
+    
+    // Address: /ch/XX/mix/fader
+    pos += snprintf((char*)&packet[pos], 30, "/ch/%02d/mix/fader", channel + 1);
+    pos++;  // null terminator
+    
+    // Pad to 4-byte boundary
+    while (pos % 4 != 0) {
+        packet[pos++] = 0;
+    }
+    
+    // Type tag: ,f
+    packet[pos++] = ',';
+    packet[pos++] = 'f';
+    packet[pos++] = 0;
+    packet[pos++] = 0;
+    
+    // Float value (big-endian)
+    uint32_t float_bits = *(uint32_t*)&value;
+    packet[pos++] = (float_bits >> 24) & 0xFF;
+    packet[pos++] = (float_bits >> 16) & 0xFF;
+    packet[pos++] = (float_bits >> 8) & 0xFF;
+    packet[pos++] = float_bits & 0xFF;
+    
+    osc_send(packet, pos);
+    
+    if (g_osc_verbose) {
+        printf("[OSC] CH%02d fader: %.2f\n", channel + 1, value);
+    }
+}
+
+// Send mute state for a channel
+void osc_send_mute(int channel, int muted)
+{
+    // Validate channel
+    if (channel < 0 || channel >= 16) return;
+    
+    // Build OSC message: /ch/XX/mix/on ,i <value>
+    // Syntax: 0=muted, 1=unmuted
+    
+    uint8_t packet[32];
+    int pos = 0;
+    
+    // Address: /ch/XX/mix/on
+    pos += snprintf((char*)&packet[pos], 30, "/ch/%02d/mix/on", channel + 1);
+    pos++;  // null terminator
+    
+    // Pad to 4-byte boundary
+    while (pos % 4 != 0) {
+        packet[pos++] = 0;
+    }
+    
+    // Type tag: ,i
+    packet[pos++] = ',';
+    packet[pos++] = 'i';
+    packet[pos++] = 0;
+    packet[pos++] = 0;
+    
+    // Int value (big-endian): 0=muted, 1=unmuted
+    int on = muted ? 0 : 1;
+    uint32_t int_val = on;
+    packet[pos++] = (int_val >> 24) & 0xFF;
+    packet[pos++] = (int_val >> 16) & 0xFF;
+    packet[pos++] = (int_val >> 8) & 0xFF;
+    packet[pos++] = int_val & 0xFF;
+    
+    osc_send(packet, pos);
+    
+    if (g_osc_verbose) {
+        printf("[OSC] CH%02d mute: %s\n", channel + 1, muted ? "ON" : "OFF");
+    }
+}
+
+// Send EQ parameter for a channel
+void osc_send_eq_param(int channel, int band, const char *param, float value)
+{
+    // Validate inputs
+    if (channel < 0 || channel >= 16) return;
+    if (band < 0 || band >= 5) return;
+    
+    // Build OSC message: /ch/XX/eq/B/param ,f <value>
+    // param: "type" (int), "f" (float), "g" (float), "q" (float)
+    
+    uint8_t packet[40];
+    int pos = 0;
+    int is_int = (strcmp(param, "type") == 0);
+    
+    // Address: /ch/XX/eq/B/param
+    pos += snprintf((char*)&packet[pos], 38, "/ch/%02d/eq/%d/%s", channel + 1, band + 1, param);
+    pos++;  // null terminator
+    
+    // Pad to 4-byte boundary
+    while (pos % 4 != 0) {
+        packet[pos++] = 0;
+    }
+    
+    // Type tag: ,i or ,f
+    packet[pos++] = ',';
+    packet[pos++] = is_int ? 'i' : 'f';
+    packet[pos++] = 0;
+    packet[pos++] = 0;
+    
+    // Value (big-endian)
+    if (is_int) {
+        uint32_t int_val = (uint32_t)value;
+        packet[pos++] = (int_val >> 24) & 0xFF;
+        packet[pos++] = (int_val >> 16) & 0xFF;
+        packet[pos++] = (int_val >> 8) & 0xFF;
+        packet[pos++] = int_val & 0xFF;
+    } else {
+        uint32_t float_bits = *(uint32_t*)&value;
+        packet[pos++] = (float_bits >> 24) & 0xFF;
+        packet[pos++] = (float_bits >> 16) & 0xFF;
+        packet[pos++] = (float_bits >> 8) & 0xFF;
+        packet[pos++] = float_bits & 0xFF;
+    }
+    
+    osc_send(packet, pos);
+    
+    if (g_osc_verbose) {
+        printf("[OSC] CH%02d EQ%d %s: %.2f\n", channel + 1, band + 1, param, value);
+    }
+}
+
+// Shutdown OSC (called on app exit)
+void osc_shutdown(void)
+{
+    if (g_osc_socket >= 0) {
+        close(g_osc_socket);
+        g_osc_socket = -1;
+        g_osc_connected = 0;
+        if (g_osc_verbose) printf("[OSC] Connection closed\n");
+    }
+}
 
 // ============================================================================
 // SHOW/PRESET FUNCTIONS
@@ -781,6 +983,7 @@ void update_mixer_touch(void)
             // Check fader first (highest priority - drag interaction)
             if (touch_hits_fader(g_touchPos, &g_faders[i], &val)) {
                 g_faders[i].value = val;
+                osc_send_fader(i, val);  // Send OSC update (Phase 1)
                 g_touched_fader_index = i;  // Mark this fader as being touched
                 return;  // Stop checking other faders
             }
@@ -788,6 +991,7 @@ void update_mixer_touch(void)
             // Check mute button
             if (touch_hits_mute_button(g_touchPos, &g_faders[i])) {
                 g_faders[i].muted = 1 - g_faders[i].muted;
+                osc_send_mute(i, g_faders[i].muted);  // Send OSC update (Phase 1)
                 return;  // Stop checking other faders
             }
             
@@ -807,6 +1011,7 @@ void update_mixer_touch(void)
         float val;
         if (touch_hits_fader(g_touchPos, &g_faders[g_touched_fader_index], &val)) {
             g_faders[g_touched_fader_index].value = val;
+            osc_send_fader(g_touched_fader_index, val);  // Send OSC update (Phase 1)
         }
     }
 }
@@ -1046,6 +1251,9 @@ void init_graphics(void)
 {
     gfxInitDefault();
     
+    // Initialize OSC (Phase 1)
+    osc_init();
+    
     // Mount RomFS for loading embedded assets (required before accessing romfs:/)
     romfsInit();
     
@@ -1140,6 +1348,9 @@ void cleanup_graphics(void)
     }
     C2D_Fini();
     C3D_Fini();
+    
+    // Shutdown OSC (Phase 1)
+    osc_shutdown();
     
     // Unmount RomFS
     romfsExit();

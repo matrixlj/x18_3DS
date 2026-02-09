@@ -7,8 +7,8 @@
 # Configuration
 EMULATOR_PATH="/Users/lorenzomazzocchetti/Desktop/Github/X32-Behringer/build/X32"
 LOG_FILE="./x32-emulator.log"
-IP_ADDRESS="127.0.0.1"  # localhost
-PORT=10024               # X18/X32 OSC port
+IP_ADDRESS="auto"        # Auto-detect from system network
+PORT=10023               # X32 standard OSC port (X18 also uses 10024, but emulator defaults to 10023)
 VERBOSE=1                # 1 = verbose mode (see all OSC commands)
 DEBUG=0                  # 1 = debug mode
 
