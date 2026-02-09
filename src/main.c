@@ -726,11 +726,13 @@ int touch_hits_fader(touchPosition touch, Fader *fader, float *out_value)
         // value=0: grip_y = 205 - (160*0.15) = 181
         float fader_top = 45;      // Grip top position (value = 1.0)
         float fader_bottom = 181;  // Grip bottom position (value = 0.0)
+        float grip_half_height = 8.0f;  // Grip is 16px tall, center offset = 8px
         
-        if (touch.py >= fader_top && touch.py <= fader_bottom) {
+        if (touch.py >= fader_top - grip_half_height && touch.py <= fader_bottom + grip_half_height) {
+            // Calculate based on grip CENTER position, not touch point
+            float grip_center_from_fader_top = (touch.py - grip_half_height) - fader_top;
             float fader_height = fader_bottom - fader_top;
-            float pos = touch.py - fader_top;
-            float val = 1.0f - (pos / fader_height);
+            float val = 1.0f - (grip_center_from_fader_top / fader_height);
             *out_value = (val < 0) ? 0 : (val > 1) ? 1 : val;
             return 1;
         }
