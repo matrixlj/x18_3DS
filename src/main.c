@@ -1184,9 +1184,25 @@ void render_top_screen(void)
     C2D_TargetClear(g_topScreen.target, clrBgDark);
     C2D_SceneBegin(g_topScreen.target);
     
-    // If EQ window is open, render it instead of normal mixer UI
+    // If EQ window is open, show message on top screen
     if (g_eq_window_open) {
-        render_eq_window();
+        // Top screen shows EQ info, bottom screen has the controls
+        C2D_DrawRectSolid(0, 0, 0.5f, SCREEN_WIDTH_TOP, 60, C2D_Color32(0x0F, 0x1F, 0x3F, 0xFF));
+        C2D_DrawRectangle(0, 0, 0.5f, SCREEN_WIDTH_TOP, 60, clrRed, clrRed, clrRed, clrRed);
+        draw_debug_text(&g_topScreen, "EQ EDITOR", 20.0f, 10.0f, 0.6f, clrRed);
+        draw_debug_text(&g_topScreen, "(See Bottom Screen)", 20.0f, 35.0f, 0.45f, clrCyan);
+        
+        // Bottom section: instructions
+        C2D_DrawRectSolid(0, 60, 0.5f, SCREEN_WIDTH_TOP, 120, C2D_Color32(0x15, 0x15, 0x25, 0xFF));
+        draw_debug_text(&g_topScreen, "TOUCH CONTROLS:", 10.0f, 70.0f, 0.4f, clrYellow);
+        draw_debug_text(&g_topScreen, "- Drag graph: Frequency & Gain", 10.0f, 90.0f, 0.35f, clrWhite);
+        draw_debug_text(&g_topScreen, "- Tap Q zone: Adjust Q Factor", 10.0f, 108.0f, 0.35f, clrWhite);
+        draw_debug_text(&g_topScreen, "- Tap Type btns: Change filter", 10.0f, 126.0f, 0.35f, clrWhite);
+        draw_debug_text(&g_topScreen, "- Tap band: Select band", 10.0f, 144.0f, 0.35f, clrWhite);
+        
+        // Bottom section: exit instruction
+        C2D_DrawRectSolid(0, 180, 0.5f, SCREEN_WIDTH_TOP, 40, C2D_Color32(0x1F, 0x0F, 0x0F, 0xFF));
+        draw_debug_text(&g_topScreen, "Press B to CLOSE", 20.0f, 195.0f, 0.45f, clrRed);
         return;
     }
     
