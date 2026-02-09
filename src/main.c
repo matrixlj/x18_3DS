@@ -807,37 +807,37 @@ void update_eq_touch(void)
     }
     
     // Check if touched a band info row to select it
-    // Band rows: y=158 + b*16, each h=16
+    // Band rows: y=147 + b*18, each h=18
     for (int b = 0; b < 5; b++) {
-        int band_y = 158 + (b * 16);
+        int band_y = 147 + (b * 18);
         if (touch_edge && g_touchPos.px >= 0 && g_touchPos.px < SCREEN_WIDTH_BOT &&
-            g_touchPos.py >= band_y && g_touchPos.py < (band_y + 16)) {
+            g_touchPos.py >= band_y && g_touchPos.py < (band_y + 18)) {
             g_eq_selected_band = b;
             return;  // Don't process other touches this frame
         }
     }
     
-    // Check if touched Q Factor adjustment area (y=132-143)
-    if (touch_edge && g_touchPos.py >= 132 && g_touchPos.py < 143) {
+    // Check if touched Q Factor adjustment area (y=102-120)
+    if (touch_edge && g_touchPos.py >= 102 && g_touchPos.py < 120) {
         EQBand *band = &eq->bands[g_eq_selected_band];
         
-        // Left side (< button): decrease Q factor
-        if (g_touchPos.px >= 8 && g_touchPos.px < 25) {
-            band->q_factor -= 0.2f;
+        // Left side (before middle): decrease Q factor
+        if (g_touchPos.px >= 8 && g_touchPos.px < 100) {
+            band->q_factor -= 0.3f;
             if (band->q_factor < 0.3f) band->q_factor = 0.3f;
             return;
         }
         
-        // Right side (> button): increase Q factor
-        if (g_touchPos.px > SCREEN_WIDTH_BOT - 25) {
-            band->q_factor += 0.2f;
+        // Right side (after middle): increase Q factor
+        if (g_touchPos.px > 212) {
+            band->q_factor += 0.3f;
             if (band->q_factor > 10.0f) band->q_factor = 10.0f;
             return;
         }
         
         // Middle area: continuous Q adjustment based on X position
-        if (g_touchPos.px >= 25 && g_touchPos.px < SCREEN_WIDTH_BOT - 25) {
-            float norm_x = (float)(g_touchPos.px - 25) / (float)(SCREEN_WIDTH_BOT - 50);
+        if (g_touchPos.px >= 100 && g_touchPos.px <= 212) {
+            float norm_x = (float)(g_touchPos.px - 100) / (float)(212 - 100);
             if (norm_x < 0) norm_x = 0;
             if (norm_x > 1) norm_x = 1;
             // Map from 0-1 to 10.0-0.3 (inverted, higher X = lower Q)
@@ -846,12 +846,12 @@ void update_eq_touch(void)
         }
     }
     
-    // Check if touched Type selection buttons (y=146-155)
-    if (touch_edge && g_touchPos.py >= 146 && g_touchPos.py < 155) {
+    // Check if touched Type selection buttons (y=125-143)
+    if (touch_edge && g_touchPos.py >= 125 && g_touchPos.py < 143) {
         EQBand *band = &eq->bands[g_eq_selected_band];
         
-        // 6 type buttons: each 40px wide starting at x=8
-        int button_width = 40;
+        // 6 type buttons: each 50px wide starting at x=8
+        int button_width = 50;
         int button_x_start = 8;
         
         for (int t = 0; t < 6; t++) {
@@ -864,11 +864,11 @@ void update_eq_touch(void)
     }
     
     // Check if touched in graph area and dragging to adjust parameters
-    // Graph: x=8, y=20, w=240, h=110
+    // Graph: x=8, y=20, w=240, h=80
     int graph_x = 8;
     int graph_y = 20;
     int graph_w = 240;
-    int graph_h = 110;
+    int graph_h = 80;
     
     if (g_touchPos.px >= graph_x && g_touchPos.px < (graph_x + graph_w) &&
         g_touchPos.py >= graph_y && g_touchPos.py < (graph_y + graph_h)) {
@@ -1347,11 +1347,11 @@ void render_eq_window(void)
     C2D_DrawRectangle(80, 3, 0.5f, 60, 12, clrBorder, clrBorder, clrBorder, clrBorder);
     draw_debug_text(&g_botScreen, enable_text, 85.0f, 2.0f, 0.35f, clrWhite);
     
-    // ===== EQ GRAPH AREA (20-130px) =====
+    // ===== EQ GRAPH AREA (20-100px) =====
     int graph_x = 8;
     int graph_y = 20;
     int graph_w = 240;
-    int graph_h = 110;
+    int graph_h = 80;
     
     C2D_DrawRectSolid(graph_x, graph_y, 0.5f, graph_w, graph_h, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
     C2D_DrawRectangle(graph_x, graph_y, 0.5f, graph_w, graph_h, clrBorder, clrBorder, clrBorder, clrBorder);
@@ -1427,35 +1427,37 @@ void render_eq_window(void)
         }
     }
     
-    // ===== Q FACTOR & TYPE CONTROL AREA (135-155px) =====
+    // ===== Q FACTOR CONTROL (102-120px) =====
     EQBand *selected_band = &eq->bands[g_eq_selected_band];
     
-    // Q Factor adjustment (135-145px)
-    C2D_DrawRectSolid(0, 132, 0.5f, SCREEN_WIDTH_BOT, 11, C2D_Color32(0x2A, 0x2A, 0x2A, 0xFF));
-    C2D_DrawRectangle(0, 132, 0.5f, SCREEN_WIDTH_BOT, 11, clrBorder, clrBorder, clrBorder, clrBorder);
+    C2D_DrawRectSolid(8, 102, 0.5f, 304, 18, C2D_Color32(0x1F, 0x1F, 0x4F, 0xFF));
+    C2D_DrawRectangle(8, 102, 0.5f, 304, 18, clrBorder, clrBorder, clrBorder, clrBorder);
     
-    char q_str[48];
-    snprintf(q_str, sizeof(q_str), "< Q: %.2f >", selected_band->q_factor);
-    draw_debug_text(&g_botScreen, q_str, 8.0f, 134.0f, 0.35f, clrYellow);
+    char q_str[64];
+    snprintf(q_str, sizeof(q_str), "Q: %.2f", selected_band->q_factor);
+    draw_debug_text(&g_botScreen, q_str, 15.0f, 106.0f, 0.4f, clrYellow);
     
-    // Type selection buttons (146-155px) - 6 types: LCut, Lshv, PEQ, VPEQ, HShv, HCut
+    // Type selection buttons (122-145px) - 6 types: LCut, Lshv, PEQ, VPEQ, HShv, HCut
+    C2D_DrawRectSolid(0, 122, 0.5f, SCREEN_WIDTH_BOT, 24, C2D_Color32(0x1A, 0x1A, 0x1A, 0xFF));
+    C2D_DrawRectangle(0, 122, 0.5f, SCREEN_WIDTH_BOT, 24, clrBorder, clrBorder, clrBorder, clrBorder);
+    
     const char *type_names[] = {"LCut", "Lshv", "PEQ", "VPEQ", "HShv", "HCut"};
-    int button_width = 40;
-    int button_x_start = 8;
+    int button_width = 50;
+    int button_height = 20;
     
     for (int t = 0; t < 6; t++) {
-        int btn_x = button_x_start + (t * button_width);
-        u32 btn_color = (t == selected_band->type) ? clrGreen : C2D_Color32(0x22, 0x22, 0x44, 0xFF);
-        C2D_DrawRectSolid(btn_x, 146, 0.5f, button_width - 2, 9, btn_color);
-        C2D_DrawRectangle(btn_x, 146, 0.5f, button_width - 2, 9, clrBorder, clrBorder, clrBorder, clrBorder);
+        int btn_x = 8 + (t * button_width);
+        u32 btn_color = (t == selected_band->type) ? clrGreen : C2D_Color32(0x00, 0x22, 0x66, 0xFF);
+        C2D_DrawRectSolid(btn_x, 125, 0.5f, button_width - 2, button_height - 2, btn_color);
+        C2D_DrawRectangle(btn_x, 125, 0.5f, button_width - 2, button_height - 2, clrBorder, clrBorder, clrBorder, clrBorder);
         
         u32 txt_color = (t == selected_band->type) ? C2D_Color32(0x00, 0x00, 0x00, 0xFF) : clrCyan;
-        draw_debug_text(&g_botScreen, type_names[t], btn_x + 3.0f, 147.0f, 0.32f, txt_color);
+        draw_debug_text(&g_botScreen, type_names[t], btn_x + 7.0f, 128.0f, 0.38f, txt_color);
     }
     
-    // ===== BAND INFO PANEL (158-240px) =====
-    int info_y = 158;
-    int band_height = 16;  // 5 bands * 16px = 80px, fits in remaining 82px
+    // ===== BAND INFO PANEL (147-240px) =====
+    int info_y = 147;
+    int band_height = 18;  // 5 bands * 18px = 90px
     
     for (int b = 0; b < 5; b++) {
         EQBand *band = &eq->bands[b];
