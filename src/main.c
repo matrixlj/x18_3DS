@@ -121,6 +121,7 @@ int g_fader_loaded = 0;
 
 // Mixer
 Fader g_faders[NUM_FADERS];
+int g_touched_fader_index = -1;  // Track which fader is being touched
 
 // Touch input
 touchPosition g_touchPos = {0, 0};
@@ -719,8 +720,9 @@ void init_mixer(void)
 int touch_hits_fader(touchPosition touch, Fader *fader, float *out_value)
 {
     if (touch.px >= fader->x && touch.px < fader->x + fader->w) {
-        float fader_top = 27;
-        float fader_bottom = 200;
+        // Fader track limits (grip movement range)
+        float fader_top = 45;
+        float fader_bottom = 205;
         
         if (touch.py >= fader_top && touch.py <= fader_bottom) {
             float fader_height = fader_bottom - fader_top;
@@ -750,7 +752,13 @@ void update_eq_touch(void);
 
 void update_mixer_touch(void)
 {
-    if (!g_isTouched) return;
+    int touch_edge = g_isTouched && !g_wasTouched;
+    
+    // If touch ended, reset the touched fader tracking
+    if (!g_isTouched) {
+        g_touched_fader_index = -1;
+        return;
+    }
     
     // If EQ window is open, handle EQ touch input instead
     if (g_eq_window_open) {
@@ -758,27 +766,42 @@ void update_mixer_touch(void)
         return;
     }
     
-    int touch_edge = g_isTouched && !g_wasTouched;
-    
-    for (int i = 0; i < NUM_FADERS; i++) {
-        float val;
+    // On new touch, find which fader is being touched
+    if (touch_edge) {
+        g_touched_fader_index = -1;  // Reset
         
-        if (touch_hits_fader(g_touchPos, &g_faders[i], &val)) {
-            g_faders[i].value = val;
-        }
-        
-        if (touch_edge) {
-            if (touch_hits_mute_button(g_touchPos, &g_faders[i])) {
-                g_faders[i].muted = 1 - g_faders[i].muted;
+        for (int i = 0; i < NUM_FADERS; i++) {
+            float val;
+            
+            // Check fader first (highest priority - drag interaction)
+            if (touch_hits_fader(g_touchPos, &g_faders[i], &val)) {
+                g_faders[i].value = val;
+                g_touched_fader_index = i;  // Mark this fader as being touched
+                return;  // Stop checking other faders
             }
             
+            // Check mute button
+            if (touch_hits_mute_button(g_touchPos, &g_faders[i])) {
+                g_faders[i].muted = 1 - g_faders[i].muted;
+                return;  // Stop checking other faders
+            }
+            
+            // Check EQ button
             if (touch_hits_eq_button(g_touchPos, &g_faders[i])) {
-                // Open EQ window for this channel
                 g_eq_window_open = 1;
                 g_eq_editing_channel = i;
                 g_eq_selected_band = 0;
                 g_eq_param_selected = 0;
+                return;  // Stop checking other faders
             }
+        }
+    }
+    
+    // While touching, continue updating only the tracked fader
+    if (g_touched_fader_index >= 0 && g_touched_fader_index < NUM_FADERS) {
+        float val;
+        if (touch_hits_fader(g_touchPos, &g_faders[g_touched_fader_index], &val)) {
+            g_faders[g_touched_fader_index].value = val;
         }
     }
 }
