@@ -818,26 +818,26 @@ void update_eq_touch(void)
     }
     
     // Check if touched Q Factor adjustment area (y=102-120)
-    if (touch_edge && g_touchPos.py >= 102 && g_touchPos.py < 120) {
+    if (g_touchPos.py >= 102 && g_touchPos.py < 120) {
         EQBand *band = &eq->bands[g_eq_selected_band];
         
         // Left side (before middle): decrease Q factor
-        if (g_touchPos.px >= 8 && g_touchPos.px < 100) {
+        if (touch_edge && g_touchPos.px >= 0 && g_touchPos.px < 64) {
             band->q_factor -= 0.3f;
             if (band->q_factor < 0.3f) band->q_factor = 0.3f;
             return;
         }
         
         // Right side (after middle): increase Q factor
-        if (g_touchPos.px > 212) {
+        if (touch_edge && g_touchPos.px >= 256 && g_touchPos.px < 320) {
             band->q_factor += 0.3f;
             if (band->q_factor > 10.0f) band->q_factor = 10.0f;
             return;
         }
         
-        // Middle area: continuous Q adjustment based on X position
-        if (g_touchPos.px >= 100 && g_touchPos.px <= 212) {
-            float norm_x = (float)(g_touchPos.px - 100) / (float)(212 - 100);
+        // Middle area: continuous Q adjustment based on X position (drag-enabled)
+        if (g_isTouched && g_touchPos.px >= 64 && g_touchPos.px < 256) {
+            float norm_x = (float)g_touchPos.px / 320.0f;
             if (norm_x < 0) norm_x = 0;
             if (norm_x > 1) norm_x = 1;
             // Map from 0-1 to 10.0-0.3 (inverted, higher X = lower Q)
@@ -850,13 +850,11 @@ void update_eq_touch(void)
     if (touch_edge && g_touchPos.py >= 125 && g_touchPos.py < 143) {
         EQBand *band = &eq->bands[g_eq_selected_band];
         
-        // 6 type buttons: each 50px wide starting at x=8
-        int button_width = 50;
-        int button_x_start = 8;
-        
+        // 6 type buttons distributed evenly across full 320px width
         for (int t = 0; t < 6; t++) {
-            int btn_x = button_x_start + (t * button_width);
-            if (g_touchPos.px >= btn_x && g_touchPos.px < (btn_x + button_width - 2)) {
+            int btn_x = (SCREEN_WIDTH_BOT * t) / 6;
+            int btn_w = (SCREEN_WIDTH_BOT * (t + 1)) / 6 - btn_x;
+            if (g_touchPos.px >= btn_x && g_touchPos.px < (btn_x + btn_w - 1)) {
                 band->type = t;
                 return;
             }
@@ -864,13 +862,13 @@ void update_eq_touch(void)
     }
     
     // Check if touched in graph area and dragging to adjust parameters
-    // Graph: x=8, y=20, w=240, h=80
-    int graph_x = 8;
+    // Graph: x=0, y=20, w=320, h=80
+    int graph_x = 0;
     int graph_y = 20;
-    int graph_w = 240;
+    int graph_w = 320;
     int graph_h = 80;
     
-    if (g_touchPos.px >= graph_x && g_touchPos.px < (graph_x + graph_w) &&
+    if (g_isTouched && g_touchPos.px >= graph_x && g_touchPos.px < (graph_x + graph_w) &&
         g_touchPos.py >= graph_y && g_touchPos.py < (graph_y + graph_h)) {
         
         // Touch in graph area - adjust frequency and gain based on position
@@ -1299,18 +1297,72 @@ float calculate_eq_response(EQBand *band, float freq_hz)
 {
     if (band->frequency <= 0 || band->q_factor <= 0) return 0.0f;
     
-    // Simplified EQ calculation for visualization
-    // Using a peak/shelf approximation
     float delta = freq_hz / band->frequency;
+    if (delta < 0.01f) delta = 0.01f;
+    if (delta > 100.0f) delta = 100.0f;
     
-    if (delta < 0.1f) delta = 0.1f;
-    if (delta > 10.0f) delta = 10.0f;
-    
-    // Distance from center frequency (in octaves)
     float octave_dist = logf(delta) / logf(2.0f);
+    float response = 0.0f;
     
-    // Gaussian-like response centered at band frequency
-    float response = band->gain * expf(-0.5f * (octave_dist * octave_dist) / (0.5f * 0.5f));
+    switch(band->type) {
+        case EQ_PEQ:  // Peak EQ - symmetric peak at center frequency
+        {
+            // Narrower gaussian based on Q factor
+            float q_width = 1.0f / band->q_factor;
+            response = band->gain * expf(-((octave_dist * octave_dist) / (2.0f * q_width * q_width)));
+            break;
+        }
+        case EQ_VPEQ: // Vintage Peaky - sharper, more resonant peak
+        {
+            // Higher Q effect - narrower peak
+            float q_width = 0.5f / band->q_factor;
+            response = band->gain * expf(-((octave_dist * octave_dist) / (2.0f * q_width * q_width)));
+            break;
+        }
+        case EQ_LSHV: // Low Shelf - boost/cut below frequency
+        {
+            // Smooth shelf response using tanh for smooth transition
+            // Below frequency: full gain, above: gradually rolls off
+            float transition_sharpness = band->q_factor * 2.0f;
+            float shelf_curve = tanhf((1.0f - octave_dist) * transition_sharpness) * 0.5f + 0.5f;
+            response = band->gain * shelf_curve;
+            break;
+        }
+        case EQ_HSHV: // High Shelf - boost/cut above frequency
+        {
+            // Smooth shelf response using tanh for smooth transition
+            // Above frequency: full gain, below: gradually rolls off
+            float transition_sharpness = band->q_factor * 2.0f;
+            float shelf_curve = tanhf((octave_dist - 1.0f) * transition_sharpness) * 0.5f + 0.5f;
+            response = band->gain * shelf_curve;
+            break;
+        }
+        case EQ_LCUT: // Low Cut (High Pass) - smooth high-pass filter
+        {
+            // Butterworth-style high pass: smooth rolloff below frequency
+            // Response: G = (f/f0)^order / (1 + (f0/f)^order)
+            float order = band->q_factor * 2.0f;  // Q determines steepness
+            float hp_response = powf(delta, order) / (1.0f + powf(1.0f / delta, order));
+            response = (hp_response - 0.5f) * 2.0f * band->gain * 0.75f;
+            break;
+        }
+        case EQ_HCUT: // High Cut (Low Pass) - smooth low-pass filter
+        {
+            // Butterworth-style low pass: smooth rolloff above frequency
+            // Response: G = 1 / (1 + (f/f0)^order)
+            float order = band->q_factor * 2.0f;  // Q determines steepness
+            float lp_response = 1.0f / (1.0f + powf(delta, order));
+            response = (lp_response - 0.5f) * 2.0f * band->gain * 0.75f;
+            break;
+        }
+        default:
+            response = 0.0f;
+            break;
+    }
+    
+    // Clamp response to reasonable values for visualization
+    if (response > 15.0f) response = 15.0f;
+    if (response < -15.0f) response = -15.0f;
     
     return response;
 }
@@ -1363,10 +1415,10 @@ void render_eq_window(void)
     C2D_DrawRectangle(80, 3, 0.5f, 60, 12, clrBorder, clrBorder, clrBorder, clrBorder);
     draw_debug_text(&g_botScreen, enable_text, 85.0f, 2.0f, 0.35f, clrWhite);
     
-    // ===== EQ GRAPH AREA (20-100px) =====
-    int graph_x = 8;
+    // ===== EQ GRAPH AREA (20-100px) - Full width =====
+    int graph_x = 0;
     int graph_y = 20;
-    int graph_w = 240;
+    int graph_w = 320;  // Full screen width
     int graph_h = 80;
     
     C2D_DrawRectSolid(graph_x, graph_y, 0.5f, graph_w, graph_h, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
@@ -1384,10 +1436,13 @@ void render_eq_window(void)
     int center_y = graph_y + graph_h / 2;
     C2D_DrawRectSolid(graph_x, center_y, 0.5f, graph_w, 1, C2D_Color32(0x44, 0x44, 0x44, 0xFF));
     
-    // Draw individual band curves (thick, semi-transparent)
+    // Draw individual band curves - non-selected bands first
     u32 band_colors[] = {clrCyan, clrGreen, clrYellow, clrOrange, clrMagenta};
     
+    // First pass: draw all non-selected bands
     for (int b = 0; b < 5; b++) {
+        if (b == g_eq_selected_band) continue;  // Skip selected band, draw it last
+        
         EQBand *band = &eq->bands[b];
         
         int prev_x = graph_x;
@@ -1398,15 +1453,43 @@ void render_eq_window(void)
             float freq = 20.0f * powf(20000.0f / 20.0f, log_pos);
             
             float response_db = calculate_eq_response(band, freq);
-            float norm_gain = (response_db + 15.0f) / 30.0f;
-            if (norm_gain < 0) norm_gain = 0;
-            if (norm_gain > 1) norm_gain = 1;
+            if (response_db > 15.0f) response_db = 15.0f;
+            if (response_db < -15.0f) response_db = -15.0f;
             
-            int y = center_y - (int)(norm_gain * graph_h / 2);
+            // Center the curve at y=0dB (center_y)
+            int y = center_y - (int)(response_db * graph_h / 30.0f);
             
             if (x > graph_x) {
-                // Draw thicker line (2-3px) for each band
-                C2D_DrawRectSolid(prev_x, prev_y - 1, 0.51f, x - prev_x, 3, band_colors[b]);
+                // Draw thin line (1px) for each band
+                C2D_DrawRectSolid(prev_x, prev_y, 0.51f, x - prev_x, 1, band_colors[b]);
+            }
+            
+            prev_x = x;
+            prev_y = y;
+        }
+    }
+    
+    // Second pass: draw selected band on top (foreground)
+    {
+        EQBand *band = &eq->bands[g_eq_selected_band];
+        
+        int prev_x = graph_x;
+        int prev_y = center_y;
+        
+        for (int x = graph_x; x < graph_x + graph_w; x += 1) {
+            float log_pos = (float)(x - graph_x) / (float)graph_w;
+            float freq = 20.0f * powf(20000.0f / 20.0f, log_pos);
+            
+            float response_db = calculate_eq_response(band, freq);
+            if (response_db > 15.0f) response_db = 15.0f;
+            if (response_db < -15.0f) response_db = -15.0f;
+            
+            // Center the curve at y=0dB (center_y)
+            int y = center_y - (int)(response_db * graph_h / 30.0f);
+            
+            if (x > graph_x) {
+                // Draw selected band with 2px width for visibility
+                C2D_DrawRectSolid(prev_x, prev_y - 1, 0.52f, x - prev_x, 3, band_colors[g_eq_selected_band]);
             }
             
             prev_x = x;
@@ -1431,11 +1514,11 @@ void render_eq_window(void)
             if (total_gain > 15.0f) total_gain = 15.0f;
             if (total_gain < -15.0f) total_gain = -15.0f;
             
-            float norm_gain = (total_gain + 15.0f) / 30.0f;
-            int y = center_y - (int)(norm_gain * graph_h / 2);
+            // Center the curve at y=0dB (center_y)
+            int y = center_y - (int)(total_gain * graph_h / 30.0f);
             
             if (x > graph_x) {
-                C2D_DrawRectSolid(prev_x, prev_y - 1, 0.52f, x - prev_x, 3, clrWhite);
+                C2D_DrawRectSolid(prev_x, prev_y, 0.52f, x - prev_x, 2, clrWhite);
             }
             
             prev_x = x;
@@ -1446,8 +1529,13 @@ void render_eq_window(void)
     // ===== Q FACTOR CONTROL (102-120px) =====
     EQBand *selected_band = &eq->bands[g_eq_selected_band];
     
-    C2D_DrawRectSolid(8, 102, 0.5f, 304, 18, C2D_Color32(0x1F, 0x1F, 0x4F, 0xFF));
-    C2D_DrawRectangle(8, 102, 0.5f, 304, 18, clrBorder, clrBorder, clrBorder, clrBorder);
+    C2D_DrawRectSolid(0, 102, 0.5f, 320, 18, C2D_Color32(0x1F, 0x1F, 0x4F, 0xFF));
+    C2D_DrawRectangle(0, 102, 0.5f, 320, 18, clrBorder, clrBorder, clrBorder, clrBorder);
+    
+    // Draw Q factor position indicator (vertical line showing current Q value)
+    float q_norm = (10.0f - selected_band->q_factor) / 9.7f;  // Inverse mapping (0.3->1, 10->0)
+    int q_indicator_x = (int)(q_norm * 320.0f);
+    C2D_DrawRectSolid(q_indicator_x - 1, 103, 0.51f, 3, 16, clrRed);
     
     char q_str[64];
     snprintf(q_str, sizeof(q_str), "Q: %.2f", selected_band->q_factor);
@@ -1458,17 +1546,17 @@ void render_eq_window(void)
     C2D_DrawRectangle(0, 122, 0.5f, SCREEN_WIDTH_BOT, 24, clrBorder, clrBorder, clrBorder, clrBorder);
     
     const char *type_names[] = {"LCut", "Lshv", "PEQ", "VPEQ", "HShv", "HCut"};
-    int button_width = 50;
     int button_height = 20;
     
     for (int t = 0; t < 6; t++) {
-        int btn_x = 8 + (t * button_width);
+        int btn_x = (SCREEN_WIDTH_BOT * t) / 6;
+        int btn_w = (SCREEN_WIDTH_BOT * (t + 1)) / 6 - btn_x;
         u32 btn_color = (t == selected_band->type) ? clrGreen : C2D_Color32(0x00, 0x22, 0x66, 0xFF);
-        C2D_DrawRectSolid(btn_x, 125, 0.5f, button_width - 2, button_height - 2, btn_color);
-        C2D_DrawRectangle(btn_x, 125, 0.5f, button_width - 2, button_height - 2, clrBorder, clrBorder, clrBorder, clrBorder);
+        C2D_DrawRectSolid(btn_x, 125, 0.5f, btn_w - 1, button_height - 2, btn_color);
+        C2D_DrawRectangle(btn_x, 125, 0.5f, btn_w - 1, button_height - 2, clrBorder, clrBorder, clrBorder, clrBorder);
         
         u32 txt_color = (t == selected_band->type) ? C2D_Color32(0x00, 0x00, 0x00, 0xFF) : clrCyan;
-        draw_debug_text(&g_botScreen, type_names[t], btn_x + 7.0f, 128.0f, 0.38f, txt_color);
+        draw_debug_text(&g_botScreen, type_names[t], btn_x + btn_w / 2.0f - 8.0f, 128.0f, 0.38f, txt_color);
     }
     
     // ===== BAND INFO PANEL (147-240px) =====
