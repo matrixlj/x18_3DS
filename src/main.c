@@ -2232,23 +2232,36 @@ void render_show_manager(void)
         list_y += 18.0f;
     }
     
-    // Bottom buttons (now 6: LOAD, DEL, DUP, REN, NET, EXIT)
-    float btn_y = 210.0f;
-    float btn_width = SCREEN_WIDTH_BOT / 6.0f;
-    const char *btn_labels[] = {"LOAD", "DEL", "DUP", "REN", "NET", "EXIT"};
+    // Bottom buttons (6 buttons on 2 rows: 4 on first row, 2 on second)
+    float btn_row1_y = 210.0f;
+    float btn_row2_y = 225.0f;
+    float btn_width_4 = SCREEN_WIDTH_BOT / 4.0f;   // Width for 4 buttons
+    float btn_width_2 = SCREEN_WIDTH_BOT / 2.0f;   // Width for 2 buttons
+    
+    const char *btn_labels_row1[] = {"LOAD", "DEL", "DUP", "REN"};
+    const char *btn_labels_row2[] = {"NET", "EXIT"};
     u32 clrExit = C2D_Color32(0xFF, 0x00, 0x00, 0xFF);  // Red for exit button
     u32 clrNet = C2D_Color32(0x00, 0xFF, 0xFF, 0xFF);   // Cyan for net button
     
-    for (int i = 0; i < 6; i++) {
-        float btn_x = i * btn_width;
-        C2D_DrawRectSolid(btn_x, btn_y, 0.5f, btn_width - 1, 30, clrBtnBg);
-        C2D_DrawRectangle(btn_x, btn_y, 0.5f, btn_width - 1, 30, clrBorder, clrBorder, clrBorder, clrBorder);
+    // Row 1: 4 buttons (LOAD, DEL, DUP, REN)
+    for (int i = 0; i < 4; i++) {
+        float btn_x = i * btn_width_4;
+        C2D_DrawRectSolid(btn_x, btn_row1_y, 0.5f, btn_width_4 - 1, 14, clrBtnBg);
+        C2D_DrawRectangle(btn_x, btn_row1_y, 0.5f, btn_width_4 - 1, 14, clrBorder, clrBorder, clrBorder, clrBorder);
+        draw_debug_text(&g_botScreen, btn_labels_row1[i], btn_x + 8, btn_row1_y + 1, 0.28f, clrText);
+    }
+    
+    // Row 2: 2 buttons (NET, EXIT)
+    for (int i = 0; i < 2; i++) {
+        float btn_x = i * btn_width_2;
+        C2D_DrawRectSolid(btn_x, btn_row2_y, 0.5f, btn_width_2 - 1, 14, clrBtnBg);
+        C2D_DrawRectangle(btn_x, btn_row2_y, 0.5f, btn_width_2 - 1, 14, clrBorder, clrBorder, clrBorder, clrBorder);
         
-        u32 btn_text_color = clrText;
-        if (i == 5) btn_text_color = clrExit;     // Red for EXIT
-        else if (i == 4) btn_text_color = clrNet;  // Cyan for NET
+        u32 btn_color = clrText;
+        if (i == 0) btn_color = clrNet;   // Cyan for NET
+        else if (i == 1) btn_color = clrExit;  // Red for EXIT
         
-        draw_debug_text(&g_botScreen, btn_labels[i], btn_x + 5, btn_y + 6, 0.28f, btn_text_color);
+        draw_debug_text(&g_botScreen, btn_labels_row2[i], btn_x + 15, btn_row2_y + 1, 0.28f, btn_color);
     }
 }
 
@@ -2334,12 +2347,29 @@ int check_button_touch(int button_idx)
 {
     if (!g_isTouched) return 0;
     
-    float btn_width = SCREEN_WIDTH_BOT / 6.0f;  // Now 6 buttons
-    float btn_x = button_idx * btn_width;
-    float btn_y = 210.0f;
+    // Button layout (2 rows):
+    // Row 1 (y=210): LOAD(0), DEL(1), DUP(2), REN(3) - 4 buttons
+    // Row 2 (y=225): NET(4), EXIT(5) - 2 buttons
     
-    return (g_touchPos.px >= btn_x && g_touchPos.px < btn_x + btn_width &&
-            g_touchPos.py >= btn_y && g_touchPos.py < btn_y + 30);
+    float btn_row1_y = 210.0f;
+    float btn_row2_y = 225.0f;
+    float btn_width_4 = SCREEN_WIDTH_BOT / 4.0f;
+    float btn_width_2 = SCREEN_WIDTH_BOT / 2.0f;
+    
+    if (button_idx >= 0 && button_idx < 4) {
+        // Row 1 buttons
+        float btn_x = button_idx * btn_width_4;
+        return (g_touchPos.px >= btn_x && g_touchPos.px < btn_x + btn_width_4 &&
+                g_touchPos.py >= btn_row1_y && g_touchPos.py < btn_row1_y + 14);
+    } else if (button_idx >= 4 && button_idx < 6) {
+        // Row 2 buttons (map indices 4,5 to positions 0,1)
+        int row2_idx = button_idx - 4;
+        float btn_x = row2_idx * btn_width_2;
+        return (g_touchPos.px >= btn_x && g_touchPos.px < btn_x + btn_width_2 &&
+                g_touchPos.py >= btn_row2_y && g_touchPos.py < btn_row2_y + 14);
+    }
+    
+    return 0;
 }
 
 int get_show_item_from_touch(void)
