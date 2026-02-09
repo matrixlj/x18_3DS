@@ -1785,7 +1785,7 @@ void render_bot_screen(void)
         char vol_str[8];
         float db = fader_value_to_db(f->value);
         if (db <= -100.0f) {
-            snprintf(vol_str, sizeof(vol_str), "−∞");  // Unicode minus + infinity symbol
+            snprintf(vol_str, sizeof(vol_str), "-inf");
         } else {
             snprintf(vol_str, sizeof(vol_str), "%.0f", db);
         }
