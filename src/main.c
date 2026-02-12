@@ -1048,6 +1048,11 @@ void init_graphics(void)
 {
     gfxInitDefault();
     
+    // Initialize file system service - CRITICAL for CIA to access /sdmc/
+    // Without this, SD card access fails with "SD card was removed" error
+    // The .3dsx launcher does this automatically, but CIA needs it explicitly
+    fsInit();
+    
     // Initialize OSC (Phase 1)
     osc_init();
     
@@ -1154,6 +1159,9 @@ void cleanup_graphics(void)
     
     // Unmount RomFS
     romfsExit();
+    
+    // Shutdown file system service
+    fsExit();
     
     gfxExit();
 }
