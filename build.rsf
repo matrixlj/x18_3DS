@@ -1,0 +1,15 @@
+BasicInfo:
+  Title: "X18 Mixer"
+  ProductCode: "CTR-0-X18M"
+
+TitleInfo:
+  Category: Application
+  UniqueId: 0x000F8F00
+
+CardInfo:
+  MediaType: Card2
+
+Option:
+  UseOnSD: true
+  FreeProductCode: true
+
