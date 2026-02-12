@@ -45,7 +45,7 @@
 // SHOW MANAGER DEFINITIONS
 // ============================================================================
 
-#define SHOWS_DIR "/3ds/x18mixer/shows/"
+// SHOWS_DIR is defined in types.h (avoid duplication)
 #define MAX_SHOWS 64
 #define APP_MODE_MIXER 0
 #define APP_MODE_MANAGER 1
