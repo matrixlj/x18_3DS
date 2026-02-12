@@ -19,6 +19,7 @@
 #include "keyboard_window.h"
 #include "show_manager_window.h"
 #include "network_config_window.h"
+#include "eq_window.h"
 
 // ============================================================================
 // SCREEN DEFINITIONS
@@ -1024,130 +1025,6 @@ void update_mixer_touch(void)
 }
 
 // Handle touch input in EQ window
-void update_eq_touch(void)
-{
-    if (g_selected_step < 0 || g_selected_step >= g_current_show.num_steps) {
-        g_eq_window_open = 0;
-        return;
-    }
-    if (g_eq_editing_channel < 0 || g_eq_editing_channel >= 16) {
-        g_eq_window_open = 0;
-        return;
-    }
-    
-    int touch_edge = g_isTouched && !g_wasTouched;
-    
-    ChannelEQ *eq = &g_current_show.steps[g_selected_step].eqs[g_eq_editing_channel];
-    
-    // Check if touched ENABLE/DISABLE button (x=80, y=3, w=60, h=12)
-    if (touch_edge && g_touchPos.px >= 80 && g_touchPos.px < 140 &&
-        g_touchPos.py >= 3 && g_touchPos.py < 15) {
-        eq->enabled = 1 - eq->enabled;
-        return;  // Don't process other touches this frame
-    }
-    
-    // Check if touched Type selection buttons (y=20-36)
-    if (touch_edge && g_touchPos.py >= 20 && g_touchPos.py < 36) {
-        EQBand *band = &eq->bands[g_eq_selected_band];
-        
-        // 6 type buttons distributed evenly across full 320px width
-        for (int t = 0; t < 6; t++) {
-            int btn_x = (SCREEN_WIDTH_BOT * t) / 6;
-            int btn_w = (SCREEN_WIDTH_BOT * (t + 1)) / 6 - btn_x;
-            if (g_touchPos.px >= btn_x && g_touchPos.px < (btn_x + btn_w - 1)) {
-                band->type = t;
-                return;
-            }
-        }
-    }
-    
-    // Check if touched Q Factor adjustment area (y=220-240)
-    if (g_touchPos.py >= 220 && g_touchPos.py < 240) {
-        EQBand *band = &eq->bands[g_eq_selected_band];
-        
-        // Left side (before fader): decrease Q factor
-        if (touch_edge && g_touchPos.px >= 0 && g_touchPos.px < 64) {
-            band->q_factor -= 0.3f;
-            if (band->q_factor < 0.3f) band->q_factor = 0.3f;
-            return;
-        }
-        
-        // Right side (after fader): increase Q factor
-        if (touch_edge && g_touchPos.px >= 256 && g_touchPos.px < 320) {
-            band->q_factor += 0.3f;
-            if (band->q_factor > 10.0f) band->q_factor = 10.0f;
-            return;
-        }
-        
-        // Middle area: continuous Q adjustment based on X position (drag-enabled)
-        if (g_isTouched && g_touchPos.px >= 64 && g_touchPos.px < 256) {
-            float norm_x = (float)(g_touchPos.px - 64) / (256 - 64);
-            if (norm_x < 0) norm_x = 0;
-            if (norm_x > 1) norm_x = 1;
-            // Map from 0-1 to 10.0-0.3 (inverted, higher X = lower Q)
-            band->q_factor = 10.0f - (norm_x * 9.7f);
-            return;
-        }
-    }
-    
-    // Check if touched in graph area (y=38-220, h=182)
-    // New layout has larger graph with band circles
-    int graph_x = 0;
-    int graph_y = 38;
-    int graph_w = 320;
-    int graph_h = 182;
-    
-    if (g_isTouched && g_touchPos.px >= graph_x && g_touchPos.px < (graph_x + graph_w) &&
-        g_touchPos.py >= graph_y && g_touchPos.py < (graph_y + graph_h)) {
-        
-        // First, check if touching a band circle (for quick selection)
-        if (touch_edge) {
-            int circle_radius = 4;
-            for (int b = 0; b < 5; b++) {
-                EQBand *check_band = &eq->bands[b];
-                
-                // Calculate circle position
-                float log_pos = logf(check_band->frequency / 20.0f) / logf(20000.0f / 20.0f);
-                int circle_x = graph_x + (int)(log_pos * graph_w);
-                int center_y = graph_y + graph_h / 2;
-                int circle_y = center_y - (int)(check_band->gain * graph_h / 30.0f);
-                
-                // Check if touch is near this circle
-                int dx = g_touchPos.px - circle_x;
-                int dy = g_touchPos.py - circle_y;
-                if (dx*dx + dy*dy <= (circle_radius + 2) * (circle_radius + 2)) {
-                    g_eq_selected_band = b;
-                    // Don't return yet - continue to drag logic below
-                    break;
-                }
-            }
-        }
-        
-        // Drag selected band to adjust freq and gain
-        EQBand *band = &eq->bands[g_eq_selected_band];
-        
-        // Horizontal position determines frequency (log scale)
-        float log_pos = (float)(g_touchPos.px - graph_x) / (float)graph_w;
-        float new_freq = 20.0f * powf(20000.0f / 20.0f, log_pos);
-        
-        // Clamp frequency to reasonable range
-        if (new_freq < 20.0f) new_freq = 20.0f;
-        if (new_freq > 20000.0f) new_freq = 20000.0f;
-        band->frequency = new_freq;
-        
-        // Vertical position determines gain (-15 to +15 dB range)
-        int center_y = graph_y + graph_h / 2;
-        float norm_pos = (float)(center_y - g_touchPos.py) / (float)(graph_h / 2);
-        float new_gain = norm_pos * 15.0f;  // Maps to range [-15, +15]
-        
-        // Clamp gain
-        if (new_gain < -15.0f) new_gain = -15.0f;
-        if (new_gain > 15.0f) new_gain = 15.0f;
-        band->gain = new_gain;
-        
-        return;
-    }
-}
 
 
 void update_touch_input(void)

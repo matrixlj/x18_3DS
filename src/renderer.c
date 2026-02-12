@@ -5,6 +5,7 @@
 #include "show_manager_window.h"
 #include "network_config_window.h"
 #include "show_info_panel.h"
+#include "eq_window.h"
 
 // Color constants
 #define CLR_BG_DARK C2D_Color32(0x1A, 0x1A, 0x1A, 0xFF)
