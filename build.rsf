@@ -4,4 +4,7 @@ TitleInfo:
   Category: Application
   UniqueId: 0x000F8F00
 
+AccessControlInfo:
+  FileSystemAccess: 0x000000FF
+
 
