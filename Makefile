@@ -39,6 +39,13 @@ $(TARGET).3dsx: $(TARGET).elf
 	@echo "✅ Built: $(TARGET).3dsx"
 	@ls -lh $(TARGET).3dsx
 
+$(TARGET).cia: $(TARGET).elf
+	@echo "📦 Creating CIA (Installable Application)..."
+	@echo "   Command: makerom -f cia -o $@ -target t -elf $< -icon gfx/icon.smdh -desc app:4 -rsf build.rsf"
+	@makerom -f cia -o $@ -target t -elf $< -icon gfx/icon.smdh -desc app:4 -rsf build.rsf > /dev/null 2>&1
+	@echo "✅ Built: $(TARGET).cia"
+	@ls -lh $(TARGET).cia
+
 $(BUILD)/%.o: %.c
 	@mkdir -p $(dir $@)
 	@echo "📝 $(notdir $<)"

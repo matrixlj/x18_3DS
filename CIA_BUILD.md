@@ -1,75 +1,83 @@
 # Building CIA (Installable Application) Format
 
-## Current Status
+## Build Both Formats
 
-The project builds as **`.3dsx` (Homebrew)** by default, which is the easiest format to use.
+The project now builds **both formats** from a single ELF:
 
-If you want to create a **`.cia`** (Installable/System Application) format instead, here are your options:
-
----
-
-## Option 1: Online Converter (Easiest)
-
-The simplest way is to use an online `.3dsx` to `.cia` converter:
-
-1. Build the homebrew: `make all`
-2. Upload `x18mixer.3dsx` to https://3dskit.xyz/converter
-3. Download the generated `.cia`
-4. Transfer to your 3DS via FBI or JKSM
-
-**Pros:** No local tools needed, works reliably
-**Cons:** Requires internet, file uploaded to third-party service
-
----
-
-## Option 2: Local Build with makerom
-
-To build CIA locally on macOS/Linux:
-
-### Requirements
 ```bash
-# You should already have from devkitARM:
-which makerom  # Should return devkitARM/tools/bin/makerom
+# Build .3dsx (Homebrew - traditional approach)
+make x18mixer.3dsx
+
+# Build .cia (Installable - appears in home menu)
+make x18mixer.cia
+
+# Build both
+make all
 ```
 
-### Process
+### Technical Details
 
-The `.cia` format requires detailed access control configuration. If you want to build locally:
+Both formats contain identical compiled code. The difference is packaging:
+- **`.3dsx`**: Loaded by Homebrew Menu loader
+- **`.cia`**: Installed via FBI/Godmode9, appears as system title
 
-1. Edit `build.rsf` with proper AccessControl sections
-2. Run: `makerom -f cia -o x18mixer.cia -elf x18mixer.elf -rsf build.rsf -banner gfx/icon.smdh -icon gfx/icon.smdh -romfs gfx`
+### Build Command
 
-**Note:** This is complex. Recommended only if you're familiar with 3DS development.
+The CIA generation uses this makerom invocation:
 
----
+```bash
+makerom -f cia -o x18mixer.cia -target t -elf x18mixer.elf \
+  -icon gfx/icon.smdh -desc app:4 -rsf build.rsf
+```
 
-## Installation
-
-To install `.cia` on your New 3DS XL with CFW:
-
-1. **Using FBI:**
-   - Launch FBI from Homebrew Menu
-   - Navigate to the CIA file
-   - Press (A) → Install and confirm
-
-2. **Using JKSM:**
-   - Copy CIA to SD card `/` or `/gm9/out/`
-   - Launch JKSM
-   - Install via game installation menu
+**Key parameters:**
+- `-desc app:4` - Uses firmware4 app descriptor template (handles ExHeader automatically)
+- `-icon gfx/icon.smdh` - 48x48 RGB565 icon for home menu display
+- `-rsf build.rsf` - Minimal configuration (RomFS + metadata)"
 
 ---
 
-## When to Use Which Format
+## Installation on New 3DS XL with CFW
 
-| Format | Use Case | Installation |
-|--------|----------|--------------|
-| `.3dsx` | Default | Homebrew Menu (easiest) |
-| `.cia` | Polished / System Integration | FBI/JKSM (more official-looking) |
+### Prerequisites
+- New 3DS/New 3DS XL with Luma3DS or equivalent CFW
+- FBI installer (available on Homebrew Menu)
+- `x18mixer.cia` file on SD card
+
+### Installing via FBI
+
+1. Copy `x18mixer.cia` to SD card (root `/` or `/cias/`)
+2. Launch FBI from Homebrew Menu
+3. Navigate to SD card location where CIA is stored
+4. Select `x18mixer.cia` and press **(A)**
+5. Choose **"Install and delete CIA"**
+6. Wait for installation (~5 seconds)
+7. **X18 Mixer** now appears in home menu with its icon
+
+### Installing via Godmode9
+
+1. Copy `x18mixer.cia` to SD card root `/`
+2. Launch Godmode9 (press (Start) or (Select) during boot)
+3. Navigate to `SD:` section
+4. Highlight `x18mixer.cia`
+5. Press **(R + A)** to mark file
+6. Press **(A)** on CIA path and select installation target
+7. Confirm and wait for installation
+8. Title appears in home menu
+
+### Advantages of CIA Format vs .3dsx
+
+| Aspect | CIA | .3dsx |
+|--------|-----|-------|
+| **Appearance** | System home menu | Homebrew Menu launcher |
+| **Persistence** | Survives reboots ✅ | Lost on reboot ❌ |
+| **Installation** | Permanent | Temporary |
+| **Professional Feel** | Like official titles | Like app launcher |
 
 ---
 
-## Recommendation
+## Uninstalling
 
-**For most users:** Use the default `.3dsx` homebrew build. It's simpler and works perfectly on any New 3DS with CFW.
-
-**If you want CIA:** Use the online converter for simplicity, or build locally if familiar with makerom.
+To remove X18 Mixer (CIA):
+- Use **System Settings → Data Management → Software** to uninstall
+- Or use **Godmode9** to delete from SD card `/Nintendo 3DS/` path
