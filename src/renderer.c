@@ -28,6 +28,12 @@ void render_top_screen(void)
     C2D_TargetClear(g_topScreen.target, CLR_BG_DARK);
     C2D_SceneBegin(g_topScreen.target);
     
+    // If EQ window is open, show the EQ parameter table instead
+    if (g_eq_window_open) {
+        render_eq_info_panel();
+        return;
+    }
+    
     // If network config window is open on top screen, render it
     if (g_net_config_open) {
         render_net_config_window();

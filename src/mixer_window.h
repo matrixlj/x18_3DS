@@ -17,6 +17,7 @@ extern int g_eq_param_selected;
 // ============================================================================
 
 void render_eq_window(void);
+void render_eq_info_panel(void);
 void handle_eq_input(u32 kDown, u32 kHeld);
 float fader_value_to_db(float value);
 float calculate_eq_response(EQBand *band, float freq_hz);
