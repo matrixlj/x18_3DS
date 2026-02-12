@@ -492,7 +492,7 @@ void render_eq_info_panel(void)
         C2D_DrawRectangle(0, row_y, 0.5f, SCREEN_WIDTH_TOP, row_height - 1, clrBorder, clrBorder, clrBorder, clrBorder);
         
         // Draw row label
-        draw_debug_text(&g_topScreen, row_labels[row], 5.0f, row_y + 18.0f, 0.35f, clrCyan);
+        draw_debug_text(&g_topScreen, row_labels[row], 5.0f, row_y + 18.0f, 0.40f, clrCyan);
         
         // Draw band values
         for (int b = 0; b < 5; b++) {
@@ -509,24 +509,24 @@ void render_eq_info_panel(void)
             if (row == 0) {  // Frequency
                 snprintf(value_str, sizeof(value_str), "%.0f", eq->bands[b].frequency);
                 float text_x = col_x + col_width / 2.0f - 15.0f;
-                draw_debug_text(&g_topScreen, value_str, text_x, row_y + 10.0f, 0.38f, band_colors[b]);
-                draw_debug_text(&g_topScreen, "Hz", text_x + 22.0f, row_y + 18.0f, 0.25f, band_colors[b]);
+                draw_debug_text(&g_topScreen, value_str, text_x, row_y + 10.0f, 0.50f, band_colors[b]);
+                draw_debug_text(&g_topScreen, "Hz", text_x + 22.0f, row_y + 18.0f, 0.32f, band_colors[b]);
             } 
             else if (row == 1) {  // Gain
                 snprintf(value_str, sizeof(value_str), "%+.1f", eq->bands[b].gain);
                 float text_x = col_x + col_width / 2.0f - 15.0f;
-                draw_debug_text(&g_topScreen, value_str, text_x, row_y + 10.0f, 0.38f, band_colors[b]);
-                draw_debug_text(&g_topScreen, "dB", text_x + 22.0f, row_y + 18.0f, 0.25f, band_colors[b]);
+                draw_debug_text(&g_topScreen, value_str, text_x, row_y + 10.0f, 0.50f, band_colors[b]);
+                draw_debug_text(&g_topScreen, "dB", text_x + 22.0f, row_y + 18.0f, 0.32f, band_colors[b]);
             }
             else if (row == 2) {  // Q
                 snprintf(value_str, sizeof(value_str), "%.2f", eq->bands[b].q_factor);
                 float text_x = col_x + col_width / 2.0f - 12.0f;
-                draw_debug_text(&g_topScreen, value_str, text_x, row_y + 18.0f, 0.38f, band_colors[b]);
+                draw_debug_text(&g_topScreen, value_str, text_x, row_y + 18.0f, 0.48f, band_colors[b]);
             }
             else if (row == 3) {  // Type
                 snprintf(value_str, sizeof(value_str), "%s", get_filter_type_name(eq->bands[b].type));
                 float text_x = col_x + col_width / 2.0f - 12.0f;
-                draw_debug_text(&g_topScreen, value_str, text_x, row_y + 18.0f, 0.34f, band_colors[b]);
+                draw_debug_text(&g_topScreen, value_str, text_x, row_y + 18.0f, 0.45f, band_colors[b]);
             }
         }
     }
