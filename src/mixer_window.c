@@ -184,11 +184,11 @@ void render_eq_window(void)
         draw_debug_text(&g_botScreen, type_names[t], btn_x + btn_w / 2.0f - 7.0f, 20.5f, 0.35f, txt_color);
     }
     
-    // ===== EQ GRAPH AREA (38-163px) - Full width, taller =====
+    // ===== EQ GRAPH AREA (38-220px) - Full width, maximized =====
     int graph_x = 0;
     int graph_y = 38;
     int graph_w = 320;
-    int graph_h = 135;  // Taller graph
+    int graph_h = 182;  // Max height graph
     
     C2D_DrawRectSolid(graph_x, graph_y, 0.5f, graph_w, graph_h, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
     C2D_DrawRectangle(graph_x, graph_y, 0.5f, graph_w, graph_h, clrBorder, clrBorder, clrBorder, clrBorder);
@@ -330,26 +330,26 @@ void render_eq_window(void)
         C2D_DrawRectSolid(circle_x, circle_y - radius, 0.53f, 1, radius * 2, clrWhite);
     }
     
-    // ===== Q FACTOR CONTROL (175-193px) =====
-    C2D_DrawRectSolid(0, 175, 0.5f, 320, 18, C2D_Color32(0x1F, 0x1F, 0x4F, 0xFF));
-    C2D_DrawRectangle(0, 175, 0.5f, 320, 18, clrBorder, clrBorder, clrBorder, clrBorder);
+    // ===== Q FACTOR CONTROL (220-240px) - Bottom of screen =====
+    C2D_DrawRectSolid(0, 220, 0.5f, 320, 20, C2D_Color32(0x1F, 0x1F, 0x4F, 0xFF));
+    C2D_DrawRectangle(0, 220, 0.5f, 320, 20, clrBorder, clrBorder, clrBorder, clrBorder);
     
     // Draw Q factor position indicator (horizontal fader bar)
-    int q_bar_y = 175;
+    int q_bar_y = 220;
     int q_bar_x_start = 64;
     int q_bar_width = 192;
     
     // Draw the fader bar background
-    C2D_DrawRectSolid(q_bar_x_start, q_bar_y + 3, 0.51f, q_bar_width, 12, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
+    C2D_DrawRectSolid(q_bar_x_start, q_bar_y + 4, 0.51f, q_bar_width, 12, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
     
     // Draw Q factor position indicator (fills from left to right)
     float q_norm = (10.0f - selected_band->q_factor) / 9.7f;  // Inverse mapping (0.3->1, 10->0)
     int q_fill_width = (int)(q_norm * q_bar_width);
-    C2D_DrawRectSolid(q_bar_x_start, q_bar_y + 3, 0.51f, q_fill_width, 12, clrRed);
+    C2D_DrawRectSolid(q_bar_x_start, q_bar_y + 4, 0.51f, q_fill_width, 12, clrRed);
     
     char q_str[64];
     snprintf(q_str, sizeof(q_str), "Q: %.2f", selected_band->q_factor);
-    draw_debug_text(&g_botScreen, q_str, 15.0f, 177.0f, 0.4f, clrYellow);
+    draw_debug_text(&g_botScreen, q_str, 15.0f, 222.0f, 0.4f, clrYellow);
 }
 
 void handle_eq_input(u32 kDown, u32 kHeld)

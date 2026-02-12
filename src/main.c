@@ -1061,8 +1061,8 @@ void update_eq_touch(void)
         }
     }
     
-    // Check if touched Q Factor adjustment area (y=175-193)
-    if (g_touchPos.py >= 175 && g_touchPos.py < 193) {
+    // Check if touched Q Factor adjustment area (y=220-240)
+    if (g_touchPos.py >= 220 && g_touchPos.py < 240) {
         EQBand *band = &eq->bands[g_eq_selected_band];
         
         // Left side (before fader): decrease Q factor
@@ -1090,12 +1090,12 @@ void update_eq_touch(void)
         }
     }
     
-    // Check if touched in graph area (y=38-158, h=120)
+    // Check if touched in graph area (y=38-220, h=182)
     // New layout has larger graph with band circles
     int graph_x = 0;
     int graph_y = 38;
     int graph_w = 320;
-    int graph_h = 120;
+    int graph_h = 182;
     
     if (g_isTouched && g_touchPos.px >= graph_x && g_touchPos.px < (graph_x + graph_w) &&
         g_touchPos.py >= graph_y && g_touchPos.py < (graph_y + graph_h)) {
