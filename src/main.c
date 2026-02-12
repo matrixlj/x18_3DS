@@ -1076,33 +1076,27 @@ void init_graphics(void)
     
     g_textBuf = C2D_TextBufNew(2048);
     
-    // Load fader sprite sheets from /gfx/ (embedded in romfs)
-    printf("[DEBUG] Attempting to load spritesheets from romfs:/\n");
+    // Ensure sprite sheets are available on SD card (for CIA compatibility)
+    ensure_sprite_sheets_on_sd();
     
-    // List contents of root directory to verify romfs is mounted and see what's there
-    DIR* dir = opendir("romfs:/");
-    if (dir) {
-        struct dirent* entry;
-        printf("[DEBUG] Contents of romfs:/:\n");
-        while ((entry = readdir(dir)) != NULL) {
-            printf("[DEBUG]   - %s\n", entry->d_name);
-        }
-        closedir(dir);
-    } else {
-        printf("[DEBUG] ERROR: Could not open romfs:/ directory\n");
-    }
+    // Load fader sprite sheets from romfs (for .3dsx) or /3ds/x18mixer/gfx/ (for CIA on SD card)
+    printf("[DEBUG] Attempting to load spritesheets from romfs:/ or SD card\n");
     
     // Try both possible paths: romfs:/gfx/ and romfs:/ (3dsxtool might put files in root)
     g_grip_sheet = C2D_SpriteSheetLoad("romfs:/Grip.t3x");
     if (!g_grip_sheet) {
         g_grip_sheet = C2D_SpriteSheetLoad("romfs:/gfx/Grip.t3x");
     }
+    // If RomFS failed, try loading from SD card (CIA doesn't embed RomFS by default)
+    if (!g_grip_sheet) {
+        g_grip_sheet = C2D_SpriteSheetLoad("/3ds/x18mixer/gfx/Grip.t3x");
+    }
     if (g_grip_sheet) {
         g_grip_img = C2D_SpriteSheetGetImage(g_grip_sheet, 0);
         g_grip_loaded = 1;
         printf("[DEBUG] Successfully loaded Grip.t3x\n");
     } else {
-        printf("[DEBUG] Failed to load Grip.t3x from both paths\n");
+        printf("[DEBUG] Failed to load Grip.t3x from all paths\n");
     }
     
     // Load fader background sprite sheet
@@ -1110,12 +1104,20 @@ void init_graphics(void)
     if (!g_fader_sheet) {
         g_fader_sheet = C2D_SpriteSheetLoad("romfs:/gfx/FaderBkg.t3x");
     }
+    // If RomFS failed, try loading from SD card
+    if (!g_fader_sheet) {
+        g_fader_sheet = C2D_SpriteSheetLoad("romfs:/gfx/FaderBkg.t3x");
+    }
+    // If RomFS failed, try loading from SD card
+    if (!g_fader_sheet) {
+        g_fader_sheet = C2D_SpriteSheetLoad("/3ds/x18mixer/gfx/FaderBkg.t3x");
+    }
     if (g_fader_sheet) {
         g_fader_bkg = C2D_SpriteSheetGetImage(g_fader_sheet, 0);
         g_fader_loaded = 1;
         printf("[DEBUG] Successfully loaded FaderBkg.t3x\n");
     } else {
-        printf("[DEBUG] Failed to load FaderBkg.t3x from both paths\n");
+        printf("[DEBUG] Failed to load FaderBkg.t3x from all paths\n");
     }
     
     g_romfs_mounted = 1;

@@ -136,5 +136,6 @@ extern C2D_TextBuf g_textBuf;
 
 void draw_debug_text(C2D_Screen *screen, const char *text, float x, float y, float size, u32 color);
 void create_shows_directory(void);
+void ensure_sprite_sheets_on_sd(void);
 
 #endif

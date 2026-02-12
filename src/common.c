@@ -116,4 +116,55 @@ void create_shows_directory(void)
 {
     mkdir("/3ds", 0755);
     mkdir("/3ds/x18mixer", 0755);
+    mkdir("/3ds/x18mixer/gfx", 0755);  // Also create gfx folder for sprite sheets
+}
+
+// Copy a file from source to destination
+static int copy_file(const char *src, const char *dst)
+{
+    FILE *src_file = fopen(src, "rb");
+    if (!src_file) return 0;
+    
+    FILE *dst_file = fopen(dst, "wb");
+    if (!dst_file) {
+        fclose(src_file);
+        return 0;
+    }
+    
+    char buffer[4096];
+    size_t read_size;
+    while ((read_size = fread(buffer, 1, sizeof(buffer), src_file)) > 0) {
+        fwrite(buffer, 1, read_size, dst_file);
+    }
+    
+    fclose(src_file);
+    fclose(dst_file);
+    return 1;
+}
+
+// Ensure sprite sheets are available on SD card (copy from RomFS if available)
+void ensure_sprite_sheets_on_sd(void)
+{
+    create_shows_directory();
+    
+    // Try to copy sprite sheets from RomFS to SD card
+    // This ensures CIA has the graphics regardless of RomFS embedding
+    
+    FILE *test = fopen("/3ds/x18mixer/gfx/Grip.t3x", "rb");
+    if (!test) {
+        // Sprite sheet doesn't exist on SD, try to copy from RomFS
+        copy_file("romfs:/gfx/Grip.t3x", "/3ds/x18mixer/gfx/Grip.t3x");
+        copy_file("romfs:/Grip.t3x", "/3ds/x18mixer/gfx/Grip.t3x");
+    } else {
+        fclose(test);
+    }
+    
+    test = fopen("/3ds/x18mixer/gfx/FaderBkg.t3x", "rb");
+    if (!test) {
+        // Sprite sheet doesn't exist on SD, try to copy from RomFS
+        copy_file("romfs:/gfx/FaderBkg.t3x", "/3ds/x18mixer/gfx/FaderBkg.t3x");
+        copy_file("romfs:/FaderBkg.t3x", "/3ds/x18mixer/gfx/FaderBkg.t3x");
+    } else {
+        fclose(test);
+    }
 }
