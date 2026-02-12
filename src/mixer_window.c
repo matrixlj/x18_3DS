@@ -184,11 +184,11 @@ void render_eq_window(void)
         draw_debug_text(&g_botScreen, type_names[t], btn_x + btn_w / 2.0f - 7.0f, 20.5f, 0.35f, txt_color);
     }
     
-    // ===== EQ GRAPH AREA (38-158px) - Full width, taller =====
+    // ===== EQ GRAPH AREA (38-163px) - Full width, taller =====
     int graph_x = 0;
     int graph_y = 38;
     int graph_w = 320;
-    int graph_h = 120;  // Taller graph
+    int graph_h = 135;  // Taller graph
     
     C2D_DrawRectSolid(graph_x, graph_y, 0.5f, graph_w, graph_h, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
     C2D_DrawRectangle(graph_x, graph_y, 0.5f, graph_w, graph_h, clrBorder, clrBorder, clrBorder, clrBorder);
@@ -330,12 +330,12 @@ void render_eq_window(void)
         C2D_DrawRectSolid(circle_x, circle_y - radius, 0.53f, 1, radius * 2, clrWhite);
     }
     
-    // ===== Q FACTOR CONTROL (160-178px) =====
-    C2D_DrawRectSolid(0, 160, 0.5f, 320, 18, C2D_Color32(0x1F, 0x1F, 0x4F, 0xFF));
-    C2D_DrawRectangle(0, 160, 0.5f, 320, 18, clrBorder, clrBorder, clrBorder, clrBorder);
+    // ===== Q FACTOR CONTROL (175-193px) =====
+    C2D_DrawRectSolid(0, 175, 0.5f, 320, 18, C2D_Color32(0x1F, 0x1F, 0x4F, 0xFF));
+    C2D_DrawRectangle(0, 175, 0.5f, 320, 18, clrBorder, clrBorder, clrBorder, clrBorder);
     
     // Draw Q factor position indicator (horizontal fader bar)
-    int q_bar_y = 160;
+    int q_bar_y = 175;
     int q_bar_x_start = 64;
     int q_bar_width = 192;
     
@@ -349,7 +349,7 @@ void render_eq_window(void)
     
     char q_str[64];
     snprintf(q_str, sizeof(q_str), "Q: %.2f", selected_band->q_factor);
-    draw_debug_text(&g_botScreen, q_str, 15.0f, 162.0f, 0.4f, clrYellow);
+    draw_debug_text(&g_botScreen, q_str, 15.0f, 177.0f, 0.4f, clrYellow);
 }
 
 void handle_eq_input(u32 kDown, u32 kHeld)
@@ -476,8 +476,8 @@ void render_eq_info_panel(void)
     draw_debug_text(&g_topScreen, header, 10.0f, 2.0f, 0.40f, clrYellow);
     
     // ===== TABLE SETUP =====
-    int col_width = SCREEN_WIDTH_TOP / 5;  // 64px per band column
-    int label_col_width = 40;
+    int label_col_width = 25;  // Narrower label column
+    int col_width = (SCREEN_WIDTH_TOP - label_col_width) / 5;  // Calculated for 5 bands
     int row_height = 44;
     int table_y = 25;
     

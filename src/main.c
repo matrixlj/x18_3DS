@@ -1061,8 +1061,8 @@ void update_eq_touch(void)
         }
     }
     
-    // Check if touched Q Factor adjustment area (y=160-178)
-    if (g_touchPos.py >= 160 && g_touchPos.py < 178) {
+    // Check if touched Q Factor adjustment area (y=175-193)
+    if (g_touchPos.py >= 175 && g_touchPos.py < 193) {
         EQBand *band = &eq->bands[g_eq_selected_band];
         
         // Left side (before fader): decrease Q factor
