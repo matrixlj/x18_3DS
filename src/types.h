@@ -18,7 +18,7 @@
 // SHOW MANAGER DEFINITIONS
 // ============================================================================
 
-#define SHOWS_DIR "/sdmc/3ds/x18mixer/shows/"
+#define SHOWS_DIR "/3ds/x18mixer/shows/"
 #define MAX_SHOWS 64
 
 // Manager buttons
