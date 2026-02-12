@@ -1077,7 +1077,7 @@ void update_eq_touch(void)
         
         // Middle area: continuous Q adjustment based on X position (drag-enabled)
         if (g_isTouched && g_touchPos.px >= 64 && g_touchPos.px < 256) {
-            float norm_x = (float)g_touchPos.px / 320.0f;
+            float norm_x = (float)(g_touchPos.px - 64) / (256 - 64);
             if (norm_x < 0) norm_x = 0;
             if (norm_x > 1) norm_x = 1;
             // Map from 0-1 to 10.0-0.3 (inverted, higher X = lower Q)
