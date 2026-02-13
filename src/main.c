@@ -10,6 +10,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <ctype.h>
+#include <3ds.h>
 
 // Module headers
 #include "types.h"
@@ -20,6 +21,13 @@
 #include "show_manager_window.h"
 #include "network_config_window.h"
 #include "eq_window.h"
+
+// ============================================================================
+// SOCKET BUFFER (for socInit on 3DS)
+// ============================================================================
+
+// 1MB buffer for socket operations - use smaller buffer aligned properly
+static u32 SOC_BUFFER[0x80000 / 4] __attribute__((aligned(0x1000)));
 
 // ============================================================================
 // SCREEN DEFINITIONS
@@ -89,10 +97,22 @@ void ip_digits_to_display(const char *digits, char *display_buf, int max_len);
 // Initialize OSC connection
 void osc_init(void)
 {
+    FILE *dbg = fopen("/3ds/x18mixer/osc_debug.txt", "w");
+    if (dbg) fprintf(dbg, "[OSC_INIT] Starting OSC initialization...\n");
+    
     // Create UDP socket
-    g_osc_socket = socket(AF_INET, SOCK_DGRAM, 0);
+    g_osc_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (dbg) fprintf(dbg, "[OSC_INIT] socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP) returned: %d\n", g_osc_socket);
+    
     if (g_osc_socket < 0) {
-        if (g_osc_verbose) printf("[OSC] ERROR: Failed to create socket\n");
+        if (dbg) fprintf(dbg, "[OSC_INIT] ERROR: Failed to create socket\n");
+        if (dbg) fclose(dbg);
+        return;
+    }
+    
+    if (g_osc_socket < 0) {
+        if (dbg) fprintf(dbg, "[OSC_INIT] ERROR: Failed to create socket\n");
+        if (dbg) fclose(dbg);
         return;
     }
     
@@ -101,15 +121,22 @@ void osc_init(void)
     g_mixer_addr.sin_family = AF_INET;
     g_mixer_addr.sin_port = htons(g_mixer_port);
     
-    if (inet_pton(AF_INET, g_mixer_host, &g_mixer_addr.sin_addr) <= 0) {
-        if (g_osc_verbose) printf("[OSC] ERROR: Invalid IP address\n");
+    if (dbg) fprintf(dbg, "[OSC_INIT] Parsing IP: '%s' (len=%d), Port: %d\n", g_mixer_host, (int)strlen(g_mixer_host), g_mixer_port);
+    
+    int ret = inet_pton(AF_INET, g_mixer_host, &g_mixer_addr.sin_addr);
+    if (dbg) fprintf(dbg, "[OSC_INIT] inet_pton returned: %d\n", ret);
+    
+    if (ret <= 0) {
+        if (dbg) fprintf(dbg, "[OSC_INIT] ERROR: Invalid IP address: '%s' (ret=%d)\n", g_mixer_host, ret);
+        if (dbg) fclose(dbg);
         close(g_osc_socket);
         g_osc_socket = -1;
         return;
     }
     
     g_osc_connected = 1;
-    if (g_osc_verbose) printf("[OSC] Connected to %s:%d\n", g_mixer_host, g_mixer_port);
+    if (dbg) fprintf(dbg, "[OSC_INIT] SUCCESS! Connected to %s:%d, socket=%d\n", g_mixer_host, g_mixer_port, g_osc_socket);
+    if (dbg) fclose(dbg);
 }
 
 // Send OSC message (generic)
@@ -159,11 +186,9 @@ void osc_send_fader(int channel, float value)
     packet[pos++] = (float_bits >> 8) & 0xFF;
     packet[pos++] = float_bits & 0xFF;
     
-    osc_send(packet, pos);
-    
-    if (g_osc_verbose) {
-        printf("[OSC] CH%02d fader: %.2f\n", channel + 1, value);
-    }
+    int result = osc_send(packet, pos);
+    printf("[DEBUG] OSC_SEND_FADER CH%02d: value=%.2f, result=%d, connected=%d, socket=%d\n", 
+           channel + 1, value, result, g_osc_connected, g_osc_socket);
 }
 
 // Send mute state for a channel
@@ -273,8 +298,19 @@ void osc_shutdown(void)
 // Send complete step data via OSC (all 16 faders + 16 mutes + all EQ data)
 void send_step_osc(int step_idx)
 {
-    if (step_idx < 0 || step_idx >= g_current_show.num_steps) return;
-    if (!g_osc_connected) return;
+    FILE *dbg = fopen("/3ds/x18mixer/osc_debug.txt", "a");
+    if (dbg) fprintf(dbg, "[SEND_STEP] step_idx=%d, connected=%d, socket=%d\n", step_idx, g_osc_connected, g_osc_socket);
+    
+    if (step_idx < 0 || step_idx >= g_current_show.num_steps) {
+        if (dbg) fprintf(dbg, "[SEND_STEP] Invalid step index\n");
+        if (dbg) fclose(dbg);
+        return;
+    }
+    if (!g_osc_connected) {
+        if (dbg) fprintf(dbg, "[SEND_STEP] OSC not connected, returning\n");
+        if (dbg) fclose(dbg);
+        return;
+    }
     
     Step *step = &g_current_show.steps[step_idx];
     
@@ -307,6 +343,11 @@ void send_step_osc(int step_idx)
     
     if (g_osc_verbose) {
         printf("[OSC] Step %d complete (16 faders + 16 mutes + 80 EQ params)\n", step_idx + 1);
+    }
+    
+    if (dbg) {
+        fprintf(dbg, "[SEND_STEP] Step %d sent successfully\n", step_idx);
+        fclose(dbg);
     }
 }
 
@@ -795,51 +836,68 @@ void list_available_shows(void)
 // Load network configuration from file
 void load_network_config(void)
 {
+    FILE *dbg = fopen("/3ds/x18mixer/osc_debug.txt", "a");
+    if (dbg) fprintf(dbg, "[LOAD_CONFIG] Loading network config...\n");
+    
     FILE *f = fopen("/3ds/x18mixer/net.txt", "r");
     if (!f) {
         // Use defaults if file doesn't exist
-        // Default IP: 10.10.99.112 -> digits: 10101099112 (always 12 chars)
+        if (dbg) fprintf(dbg, "[LOAD_CONFIG] File not found, using defaults\n");
         strcpy(g_net_ip_digits, "10101099112");
         strcpy(g_mixer_host, "10.10.99.112");
         snprintf(g_net_port_input, sizeof(g_net_port_input), "%d", g_mixer_port);
+        if (dbg) fprintf(dbg, "[LOAD_CONFIG] Defaults: host='%s', port=%d\n", g_mixer_host, g_mixer_port);
+        if (dbg) fclose(dbg);
         return;
     }
+    
+    if (dbg) fprintf(dbg, "[LOAD_CONFIG] File found, reading...\n");
     
     // Parse config file: "IP PORT"
     char line[256];
     if (fgets(line, sizeof(line), f)) {
         char ip[16];
         int port;
-        if (sscanf(line, "%15s %d", ip, &port) == 2) {
-            // Convert IP with dots to digits only (remove dots), pad to 12 chars
-            int digit_idx = 0;
-            for (int i = 0; ip[i] != '\0' && digit_idx < 12; i++) {
-                if (isdigit(ip[i])) {
-                    g_net_ip_digits[digit_idx++] = ip[i];
+        int parsed = sscanf(line, "%15s %d", ip, &port);
+        if (dbg) fprintf(dbg, "[LOAD_CONFIG] Read line: '%s', parsed=%d items\n", line, parsed);
+        
+        if (parsed == 2) {
+            // Validate IP by trying to parse it with inet_pton
+            struct in_addr temp;
+            int valid = inet_pton(AF_INET, ip, &temp);
+            if (dbg) fprintf(dbg, "[LOAD_CONFIG] inet_pton validation: %d for IP '%s'\n", valid, ip);
+            
+            if (valid > 0) {
+                // Valid IP format - use it
+                strcpy(g_mixer_host, ip);
+                g_mixer_port = port;
+                
+                // Also update digit representation
+                int digit_idx = 0;
+                for (int i = 0; ip[i] != '\0' && digit_idx < 12; i++) {
+                    if (isdigit((unsigned char)ip[i])) {
+                        g_net_ip_digits[digit_idx++] = ip[i];
+                    }
                 }
+                g_net_ip_digits[digit_idx] = '\0';  // Null terminate
+                
+                if (dbg) fprintf(dbg, "[LOAD_CONFIG] Loaded valid: host='%s', port=%d\n", g_mixer_host, g_mixer_port);
+            } else {
+                // Invalid IP - use defaults
+                if (dbg) fprintf(dbg, "[LOAD_CONFIG] Invalid IP format, using defaults\n");
+                strcpy(g_net_ip_digits, "10101099112");
+                strcpy(g_mixer_host, "10.10.99.112");
+                snprintf(g_net_port_input, sizeof(g_net_port_input), "%d", g_mixer_port);
             }
-            
-            // Pad with zeros on left if less than 12 digits
-            if (digit_idx < 12) {
-                // Shift existing digits to the right
-                for (int i = 11; i >= (12 - digit_idx); i--) {
-                    g_net_ip_digits[i] = g_net_ip_digits[i - (12 - digit_idx)];
-                }
-                // Fill left with zeros
-                for (int i = 0; i < (12 - digit_idx); i++) {
-                    g_net_ip_digits[i] = '0';
-                }
-            }
-            g_net_ip_digits[12] = '\0';  // Always 12 digits + null terminator
-            
-            snprintf(g_net_port_input, sizeof(g_net_port_input), "%d", port);
-            
-            // Update global OSC configuration
-            strcpy(g_mixer_host, ip);
-            g_mixer_port = port;
+        } else {
+            if (dbg) fprintf(dbg, "[LOAD_CONFIG] Failed to parse, using defaults\n");
+            strcpy(g_net_ip_digits, "10101099112");
+            strcpy(g_mixer_host, "10.10.99.112");
+            snprintf(g_net_port_input, sizeof(g_net_port_input), "%d", g_mixer_port);
         }
     }
     fclose(f);
+    if (dbg) fclose(dbg);
 }
 
 // Save network configuration to file
@@ -860,13 +918,28 @@ void save_network_config(void)
         port = 10023;  // Default
     }
     
-    // Convert digits to IP format and write
-    char ip_display[20];
-    ip_digits_to_display(g_net_ip_digits, ip_display, sizeof(ip_display));
-    fprintf(f, "%s %d\n", ip_display, port);
+    // Convert 12 digits to proper IP format (without leading zeros)
+    // g_net_ip_digits = "101099112" (9 digits) -> need to pad to 12: "000101099112"
+    // Then format as: octet1.octet2.octet3.octet4
+    char padded[13] = {0};
+    int len = strlen(g_net_ip_digits);
+    int pad_count = 12 - len;
+    for (int i = 0; i < pad_count; i++) padded[i] = '0';
+    strcpy(padded + pad_count, g_net_ip_digits);
+    
+    // Extract 4 octets as integers (removes leading zeros automatically)
+    int oct1 = ((padded[0]-'0')*100 + (padded[1]-'0')*10 + (padded[2]-'0'));
+    int oct2 = ((padded[3]-'0')*100 + (padded[4]-'0')*10 + (padded[5]-'0'));
+    int oct3 = ((padded[6]-'0')*100 + (padded[7]-'0')*10 + (padded[8]-'0'));
+    int oct4 = ((padded[9]-'0')*100 + (padded[10]-'0')*10 + (padded[11]-'0'));
+    
+    // Write as proper IP without leading zeros
+    char ip_proper[20];
+    snprintf(ip_proper, sizeof(ip_proper), "%d.%d.%d.%d", oct1, oct2, oct3, oct4);
+    fprintf(f, "%s %d\n", ip_proper, port);
     
     // Also update the global config
-    strcpy(g_mixer_host, ip_display);
+    strcpy(g_mixer_host, ip_proper);
     g_mixer_port = port;
     
     fflush(f);
@@ -1052,6 +1125,14 @@ void init_graphics(void)
     // Without this, SD card access fails with "SD card was removed" error
     // The .3dsx launcher does this automatically, but CIA needs it explicitly
     fsInit();
+    
+    // Initialize socket services on 3DS BEFORE using sockets
+    int soc_ret = socInit(SOC_BUFFER, sizeof(SOC_BUFFER));
+    FILE *dbg_soc = fopen("/3ds/x18mixer/osc_debug.txt", "w");
+    if (dbg_soc) {
+        fprintf(dbg_soc, "[INIT] socInit() returned: %d\n", soc_ret);
+        fclose(dbg_soc);
+    }
     
     // Initialize OSC (Phase 1)
     osc_init();
