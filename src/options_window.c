@@ -121,10 +121,12 @@ void render_options_window(void)
     float checkbox_size = 22;
     
     // Draw background box for label 1
-    C2D_DrawRectSolid(checkbox_x - 2, y1 - 22, 0.61f, 50, 18, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
+    float label_y1 = y1 - 20;
+    C2D_DrawRectSolid(checkbox_x, label_y1, 0.61f, 45, 16, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
+    C2D_DrawRectSolid(checkbox_x, label_y1, 0.62f, 45, 16, C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF)); // White border
     
-    // Draw label for checkbox 1 FIRST (above checkbox) - with black text on colored bg
-    draw_debug_text(&g_botScreen, "FADER", checkbox_x + 4, y1 - 18, 1.0f, clrLabel);
+    // Draw label for checkbox 1 - WHITE text on black
+    draw_debug_text(&g_botScreen, "FADER", checkbox_x + 3, label_y1 + 1, 1.2f, C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF));
     
     // Determine checkbox color based on state
     u32 box1_color = g_options.send_fader ? clrCheckboxEnabled : clrCheckboxDisabled;
@@ -152,10 +154,12 @@ void render_options_window(void)
     float y2 = win_y + 105;
     
     // Draw background box for label 2
-    C2D_DrawRectSolid(checkbox_x - 2, y2 - 22, 0.61f, 70, 18, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
+    float label_y2 = y2 - 20;
+    C2D_DrawRectSolid(checkbox_x, label_y2, 0.61f, 60, 16, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
+    C2D_DrawRectSolid(checkbox_x, label_y2, 0.62f, 60, 16, C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF)); // White border
     
-    // Draw label for checkbox 2 FIRST (above checkbox)
-    draw_debug_text(&g_botScreen, "EQUALIZER", checkbox_x + 4, y2 - 18, 1.0f, clrLabel);
+    // Draw label for checkbox 2 - WHITE text on black
+    draw_debug_text(&g_botScreen, "EQUALIZER", checkbox_x + 3, label_y2 + 1, 1.2f, C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF));
     
     // Determine checkbox color based on state
     u32 box2_color = g_options.send_eq ? clrCheckboxEnabled : clrCheckboxDisabled;
