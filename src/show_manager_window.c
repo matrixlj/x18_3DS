@@ -71,7 +71,7 @@ void render_show_manager(void)
         float btn_x = i * btn_width_4;
         C2D_DrawRectSolid(btn_x, btn_row1_y, 0.5f, btn_width_4 - 1, 14, clrBtnBg);
         C2D_DrawRectangle(btn_x, btn_row1_y, 0.5f, btn_width_4 - 1, 14, clrBorder, clrBorder, clrBorder, clrBorder);
-        draw_debug_text(&g_botScreen, btn_labels_row1[i], btn_x + 8, btn_row1_y + 1, 0.28f, clrText);
+        draw_debug_text(&g_botScreen, btn_labels_row1[i], btn_x + 4, btn_row1_y - 1, 0.4f, clrText);
     }
     
     // Row 2: 2 buttons (NET, EXIT)
@@ -84,7 +84,7 @@ void render_show_manager(void)
         if (i == 0) btn_color = clrNet;   // Cyan for NET
         else if (i == 1) btn_color = clrExit;  // Red for EXIT
         
-        draw_debug_text(&g_botScreen, btn_labels_row2[i], btn_x + 15, btn_row2_y + 1, 0.28f, btn_color);
+        draw_debug_text(&g_botScreen, btn_labels_row2[i], btn_x + 10, btn_row2_y - 1, 0.4f, btn_color);
     }
 }
 
