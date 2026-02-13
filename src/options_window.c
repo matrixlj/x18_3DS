@@ -130,15 +130,15 @@ void render_options_window(void)
     C2D_DrawRectSolid(checkbox_x, y1, 0.62f, 2, checkbox_size, clrWinBorder);   // Left border
     C2D_DrawRectSolid(checkbox_x + checkbox_size - 2, y1, 0.62f, 2, checkbox_size, clrWinBorder); // Right border
     
-    // Draw checkmark/X inside checkbox
+    // Draw checkmark/X inside checkbox (bigger and more visible)
     if (g_options.send_fader) {
-        draw_debug_text(&g_botScreen, "✓", checkbox_x + 4, y1 + 3, 0.6f, clrCheckmark);
+        draw_debug_text(&g_botScreen, "✓", checkbox_x + 2, y1 + 1, 0.8f, clrCheckmark);
     } else {
-        draw_debug_text(&g_botScreen, "✗", checkbox_x + 4, y1 + 3, 0.6f, C2D_Color32(0xFF, 0x00, 0x00, 0xFF));
+        draw_debug_text(&g_botScreen, "✗", checkbox_x + 2, y1 + 1, 0.8f, C2D_Color32(0xFF, 0x00, 0x00, 0xFF));
     }
     
-    // Draw label for checkbox 1 - much further to the right
-    draw_debug_text(&g_botScreen, "Send Fader", checkbox_x + 35, y1 + 2, 0.6f, clrLabel);
+    // Draw label for checkbox 1 - positioned clearly to the right
+    draw_debug_text(&g_botScreen, "Send Fader", win_x + 55, y1, 0.65f, clrLabel);
     
     // Add indicator bar below checkbox 1 if selected for navigation
     if (g_options_selected_checkbox == 0) {
@@ -158,15 +158,15 @@ void render_options_window(void)
     C2D_DrawRectSolid(checkbox_x, y2, 0.62f, 2, checkbox_size, clrWinBorder);   // Left border
     C2D_DrawRectSolid(checkbox_x + checkbox_size - 2, y2, 0.62f, 2, checkbox_size, clrWinBorder); // Right border
     
-    // Draw checkmark/X inside checkbox
+    // Draw checkmark/X inside checkbox (bigger and more visible)
     if (g_options.send_eq) {
-        draw_debug_text(&g_botScreen, "✓", checkbox_x + 4, y2 + 3, 0.6f, clrCheckmark);
+        draw_debug_text(&g_botScreen, "✓", checkbox_x + 2, y2 + 1, 0.8f, clrCheckmark);
     } else {
-        draw_debug_text(&g_botScreen, "✗", checkbox_x + 4, y2 + 3, 0.6f, C2D_Color32(0xFF, 0x00, 0x00, 0xFF));
+        draw_debug_text(&g_botScreen, "✗", checkbox_x + 2, y2 + 1, 0.8f, C2D_Color32(0xFF, 0x00, 0x00, 0xFF));
     }
     
-    // Draw label for checkbox 2 - much further to the right
-    draw_debug_text(&g_botScreen, "Send Equalizer", checkbox_x + 35, y2 + 2, 0.6f, clrLabel);
+    // Draw label for checkbox 2 - positioned clearly to the right
+    draw_debug_text(&g_botScreen, "Send Equalizer", win_x + 55, y2, 0.65f, clrLabel);
     
     // Add indicator bar below checkbox 2 if selected for navigation
     if (g_options_selected_checkbox == 1) {
@@ -202,8 +202,10 @@ void handle_options_input(u32 kDown)
         g_options_window_open = 0;
     }
     
-    // Touch input detection
-    if (g_isTouched) {
+    // Touch input detection - only on NEW touch (edge), not held
+    int touch_edge = g_isTouched && !g_wasTouched;
+    
+    if (touch_edge) {
         float win_w = 240.0f;
         float win_h = 180.0f;
         float win_x = (SCREEN_WIDTH_BOT - win_w) / 2.0f;
