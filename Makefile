@@ -44,7 +44,7 @@ $(BUILD)/%.o: %.c
 	@echo "📝 $(notdir $<)"
 	@$(CC) -MMD -MP $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
-.PHONY: all clean
+.PHONY: all clean run
 
 all: $(TARGET).3dsx
 
@@ -52,6 +52,10 @@ clean:
 	@echo "🧹 Cleaning..."
 	@rm -rf $(BUILD) $(TARGET).elf $(TARGET).3dsx
 	@echo "✅ Clean complete"
+
+run: all
+	@echo "🚀 Sending to 3DS via 3dslink..."
+	@3dslink -a 10.10.99.127 $(TARGET).3dsx
 
 -include $(DEPENDS)
 
