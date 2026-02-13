@@ -195,7 +195,7 @@ void render_bot_screen(void)
         u32 eq_color_light = f->eq_enabled ? C2D_Color32(0x88, 0xFF, 0x88, 0xFF) : clrEqLight;
         u32 eq_color_dark = f->eq_enabled ? clrEqLight : clrEqDark;
         draw_3d_button(f->x + 1, 5, f->w - 2, 14, eq_color_main, eq_color_light, eq_color_dark, f->eq_enabled);
-        draw_debug_text(&g_botScreen, "Eq", f->x + 2, 7, 0.25f, clrText);
+        draw_debug_text(&g_botScreen, "Eq", f->x + 2, 7, 0.4f, clrText);
         
         // Channel number (below EQ button) - LARGER and CENTERED
         char label[4];
@@ -281,7 +281,7 @@ void render_bot_screen(void)
         u32 mute_color_light = f->muted ? clrMuteLight : C2D_Color32(0x55, 0x00, 0x00, 0xFF);
         u32 mute_color_dark = f->muted ? clrMuteDark : C2D_Color32(0x44, 0x00, 0x00, 0xFF);
         draw_3d_button(f->x + 1, 210, f->w - 2, 17, mute_color_main, mute_color_light, mute_color_dark, f->muted);
-        draw_debug_text(&g_botScreen, "M", f->x + 4, 212, 0.25f, clrText);
+        draw_debug_text(&g_botScreen, "M", f->x + 4, 212, 0.4f, clrText);
     }
 }
 

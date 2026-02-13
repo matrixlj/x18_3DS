@@ -82,6 +82,77 @@ void save_options(void)
     fclose(f);
 }
 
+// Helper: Draw a single pixel character using rectangles (simple bitmap font)
+static void draw_pixel_char(float x, float y, char c, u32 color, float pixel_size)
+{
+    // Simple bitmap font using pixel patterns
+    // Each character is drawn as a pattern of small rectangles
+    // pixel_size is the size of each "pixel" square
+    
+    switch(c) {
+        case 'F':  // FADER: F
+            // F: vertical bar on left, 2 horizontal bars
+            C2D_DrawRectSolid(x, y, 0.55f, pixel_size, pixel_size*5, color);           // Left
+            C2D_DrawRectSolid(x, y, 0.55f, pixel_size*3, pixel_size, color);           // Top
+            C2D_DrawRectSolid(x, y + pixel_size*2, 0.55f, pixel_size*2, pixel_size, color);  // Middle
+            break;
+        case 'A':
+            // A: two diagonal lines meeting at top, horizontal bar
+            C2D_DrawRectSolid(x, y + pixel_size*2, 0.55f, pixel_size*4, pixel_size, color);  // Top diagonal
+            C2D_DrawRectSolid(x, y, 0.55f, pixel_size, pixel_size*5, color);           // Left
+            C2D_DrawRectSolid(x + pixel_size*3, y, 0.55f, pixel_size, pixel_size*5, color);  // Right
+            C2D_DrawRectSolid(x, y + pixel_size*2, 0.55f, pixel_size*4, pixel_size, color);  // Middle
+            break;
+        case 'D':
+            // D: vertical bar + curved right
+            C2D_DrawRectSolid(x, y, 0.55f, pixel_size, pixel_size*5, color);           // Left
+            C2D_DrawRectSolid(x + pixel_size, y, 0.55f, pixel_size*2, pixel_size, color);    // Top
+            C2D_DrawRectSolid(x + pixel_size, y + pixel_size*4, 0.55f, pixel_size*2, pixel_size, color);  // Bottom
+            C2D_DrawRectSolid(x + pixel_size*2, y + pixel_size, 0.55f, pixel_size, pixel_size*3, color);  // Right
+            break;
+        case 'E':
+            // E: three horizontal bars + left vertical
+            C2D_DrawRectSolid(x, y, 0.55f, pixel_size, pixel_size*5, color);           // Left
+            C2D_DrawRectSolid(x, y, 0.55f, pixel_size*3, pixel_size, color);           // Top
+            C2D_DrawRectSolid(x, y + pixel_size*2, 0.55f, pixel_size*2, pixel_size, color);  // Middle
+            C2D_DrawRectSolid(x, y + pixel_size*4, 0.55f, pixel_size*3, pixel_size, color);  // Bottom
+            break;
+        case 'L':
+            // L: vertical + bottom horizontal
+            C2D_DrawRectSolid(x, y, 0.55f, pixel_size, pixel_size*5, color);           // Left
+            C2D_DrawRectSolid(x, y + pixel_size*4, 0.55f, pixel_size*3, pixel_size, color);  // Bottom
+            break;
+        case 'Q':
+            // Q: box + diagonal tail
+            C2D_DrawRectSolid(x, y, 0.55f, pixel_size, pixel_size*4, color);           // Left
+            C2D_DrawRectSolid(x + pixel_size*3, y, 0.55f, pixel_size, pixel_size*4, color);  // Right
+            C2D_DrawRectSolid(x, y, 0.55f, pixel_size*4, pixel_size, color);           // Top
+            C2D_DrawRectSolid(x, y + pixel_size*3, 0.55f, pixel_size*4, pixel_size, color);  // Bottom
+            C2D_DrawRectSolid(x + pixel_size*2, y + pixel_size*3, 0.55f, pixel_size, pixel_size*2, color);  // Tail
+            break;
+        case 'R':
+            // R: like P + diagonal leg
+            C2D_DrawRectSolid(x, y, 0.55f, pixel_size, pixel_size*5, color);           // Left
+            C2D_DrawRectSolid(x + pixel_size, y, 0.55f, pixel_size*2, pixel_size, color);    // Top
+            C2D_DrawRectSolid(x + pixel_size*2, y + pixel_size, 0.55f, pixel_size, pixel_size*1, color);    // Right
+            C2D_DrawRectSolid(x, y + pixel_size*2, 0.55f, pixel_size*2, pixel_size, color);  // Middle
+            C2D_DrawRectSolid(x + pixel_size*2, y + pixel_size*3, 0.55f, pixel_size, pixel_size*2, color);  // Leg
+            break;
+        default:
+            break;
+    }
+}
+
+// Helper: Draw string using pixel characters
+static void draw_pixel_string(float x, float y, const char *text, u32 color, float pixel_size)
+{
+    float current_x = x;
+    for (int i = 0; text[i] != '\0'; i++) {
+        draw_pixel_char(current_x, y, text[i], color, pixel_size);
+        current_x += pixel_size * 5;  // Space between characters
+    }
+}
+
 // Render options window on bottom screen
 void render_options_window(void)
 {
@@ -120,18 +191,18 @@ void render_options_window(void)
     float checkbox_x = win_x + 20;
     float checkbox_size = 22;
     
-    // Draw background box for label 1
+    // Draw background box for label 1 (BEHIND text, z-depth 0.40)
     float label_y1 = y1 - 20;
-    C2D_DrawRectSolid(checkbox_x, label_y1, 0.61f, 45, 16, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
-    C2D_DrawRectSolid(checkbox_x, label_y1, 0.62f, 45, 16, C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF)); // White border
+    C2D_DrawRectSolid(checkbox_x, label_y1, 0.40f, 45, 16, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
+    C2D_DrawRectSolid(checkbox_x, label_y1, 0.41f, 45, 16, C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF)); // White border
     
-    // Draw label for checkbox 1 - WHITE text on black
-    draw_debug_text(&g_botScreen, "FADER", checkbox_x + 3, label_y1 + 1, 1.2f, C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF));
+    // Draw label "FADER" using pixel characters (bright yellow)
+    draw_pixel_string(checkbox_x + 3, label_y1 + 2, "FADER", C2D_Color32(0xFF, 0xFF, 0x00, 0xFF), 2.0f);
     
     // Determine checkbox color based on state
     u32 box1_color = g_options.send_fader ? clrCheckboxEnabled : clrCheckboxDisabled;
     
-    // Draw checkbox 1
+    // Draw checkbox 1 (INFRONT of everything, z-depth 0.61)
     C2D_DrawRectSolid(checkbox_x, y1, 0.61f, checkbox_size, checkbox_size, box1_color);
     C2D_DrawRectSolid(checkbox_x, y1, 0.62f, checkbox_size, 2, clrWinBorder);   // Top border
     C2D_DrawRectSolid(checkbox_x, y1 + checkbox_size - 2, 0.62f, checkbox_size, 2, clrWinBorder); // Bottom border
@@ -153,18 +224,18 @@ void render_options_window(void)
     // ===== CHECKBOX 2: Send EQ =====
     float y2 = win_y + 105;
     
-    // Draw background box for label 2
+    // Draw background box for label 2 (BEHIND text, z-depth 0.40)
     float label_y2 = y2 - 20;
-    C2D_DrawRectSolid(checkbox_x, label_y2, 0.61f, 60, 16, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
-    C2D_DrawRectSolid(checkbox_x, label_y2, 0.62f, 60, 16, C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF)); // White border
+    C2D_DrawRectSolid(checkbox_x, label_y2, 0.40f, 60, 16, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
+    C2D_DrawRectSolid(checkbox_x, label_y2, 0.41f, 60, 16, C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF)); // White border
     
-    // Draw label for checkbox 2 - WHITE text on black
-    draw_debug_text(&g_botScreen, "EQUALIZER", checkbox_x + 3, label_y2 + 1, 1.2f, C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF));
+    // Draw label "EQUALIZER" using pixel characters (bright yellow)
+    draw_pixel_string(checkbox_x + 3, label_y2 + 2, "EQUALIZER", C2D_Color32(0xFF, 0xFF, 0x00, 0xFF), 1.5f);
     
     // Determine checkbox color based on state
     u32 box2_color = g_options.send_eq ? clrCheckboxEnabled : clrCheckboxDisabled;
     
-    // Draw checkbox 2
+    // Draw checkbox 2 (INFRONT of everything, z-depth 0.61)
     C2D_DrawRectSolid(checkbox_x, y2, 0.61f, checkbox_size, checkbox_size, box2_color);
     C2D_DrawRectSolid(checkbox_x, y2, 0.62f, checkbox_size, 2, clrWinBorder);   // Top border
     C2D_DrawRectSolid(checkbox_x, y2 + checkbox_size - 2, 0.62f, checkbox_size, 2, clrWinBorder); // Bottom border
