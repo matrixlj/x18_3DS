@@ -21,6 +21,7 @@
 #include "show_manager_window.h"
 #include "network_config_window.h"
 #include "eq_window.h"
+#include "options_window.h"
 
 // ============================================================================
 // SOCKET BUFFER (for socInit on 3DS)
@@ -299,7 +300,8 @@ void osc_shutdown(void)
 void send_step_osc(int step_idx)
 {
     FILE *dbg = fopen("/3ds/x18mixer/osc_debug.txt", "a");
-    if (dbg) fprintf(dbg, "[SEND_STEP] step_idx=%d, connected=%d, socket=%d\n", step_idx, g_osc_connected, g_osc_socket);
+    if (dbg) fprintf(dbg, "[SEND_STEP] step_idx=%d, connected=%d, socket=%d, send_fader=%d, send_eq=%d\n", 
+                     step_idx, g_osc_connected, g_osc_socket, g_options.send_fader, g_options.send_eq);
     
     if (step_idx < 0 || step_idx >= g_current_show.num_steps) {
         if (dbg) fprintf(dbg, "[SEND_STEP] Invalid step index\n");
@@ -318,26 +320,30 @@ void send_step_osc(int step_idx)
         printf("[OSC] === Sending Step %d ===\n", step_idx + 1);
     }
     
-    // Send all 16 faders
-    for (int ch = 0; ch < 16; ch++) {
-        osc_send_fader(ch, step->volumes[ch]);
+    // Send all 16 faders (if enabled)
+    if (g_options.send_fader) {
+        for (int ch = 0; ch < 16; ch++) {
+            osc_send_fader(ch, step->volumes[ch]);
+        }
     }
     
-    // Send all 16 mutes
+    // Send all 16 mutes (ALWAYS sent, regardless of options)
     for (int ch = 0; ch < 16; ch++) {
         osc_send_mute(ch, step->mutes[ch]);
     }
     
-    // Send all EQ data (5 bands per channel)
-    for (int ch = 0; ch < 16; ch++) {
-        ChannelEQ *eq = &step->eqs[ch];
-        for (int band = 0; band < 5; band++) {
-            EQBand *eq_band = &eq->bands[band];
-            // Send EQ band type, frequency, gain, Q factor
-            osc_send_eq_param(ch, band, "type", (float)eq_band->type);
-            osc_send_eq_param(ch, band, "f", eq_band->frequency);
-            osc_send_eq_param(ch, band, "g", eq_band->gain);
-            osc_send_eq_param(ch, band, "q", eq_band->q_factor);
+    // Send all EQ data (5 bands per channel) - if enabled
+    if (g_options.send_eq) {
+        for (int ch = 0; ch < 16; ch++) {
+            ChannelEQ *eq = &step->eqs[ch];
+            for (int band = 0; band < 5; band++) {
+                EQBand *eq_band = &eq->bands[band];
+                // Send EQ band type, frequency, gain, Q factor
+                osc_send_eq_param(ch, band, "type", (float)eq_band->type);
+                osc_send_eq_param(ch, band, "f", eq_band->frequency);
+                osc_send_eq_param(ch, band, "g", eq_band->gain);
+                osc_send_eq_param(ch, band, "q", eq_band->q_factor);
+            }
         }
     }
     
@@ -1140,6 +1146,10 @@ void init_graphics(void)
     // Load network configuration
     load_network_config();
     
+    // Load OSC send options
+    init_options();
+    load_options();
+    
     // Mount RomFS for loading embedded assets (required before accessing romfs:/)
     romfsInit();
     
@@ -1324,6 +1334,9 @@ int main(int argc, char* argv[])
         // If EQ window is open, handle EQ input instead of normal controls
         if (g_eq_window_open) {
             handle_eq_input(kDown, kHeld);
+        } else if (g_options_window_open) {
+            // If options window is open, handle options input
+            handle_options_input(kDown);
         } else {
             // Normal mixer/manager controls
             // START button opens/closes show manager

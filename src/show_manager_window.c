@@ -1,6 +1,7 @@
 #include "common.h"
 #include "show_manager_window.h"
 #include "network_config_window.h"
+#include "options_window.h"
 
 // Forward declarations from main.c (external functions)
 extern int check_button_touch(int button_idx);
@@ -55,16 +56,17 @@ void render_show_manager(void)
         list_y += 18.0f;
     }
     
-    // Bottom buttons (6 buttons on 2 rows: 4 on first row, 2 on second)
+    // Bottom buttons (7 buttons on 2 rows: 4 on first row, 3 on second)
     float btn_row1_y = 210.0f;
     float btn_row2_y = 225.0f;
     float btn_width_4 = SCREEN_WIDTH_BOT / 4.0f;   // Width for 4 buttons
-    float btn_width_2 = SCREEN_WIDTH_BOT / 2.0f;   // Width for 2 buttons
+    float btn_width_3 = SCREEN_WIDTH_BOT / 3.0f;   // Width for 3 buttons
     
     const char *btn_labels_row1[] = {"LOAD", "DEL", "DUP", "REN"};
-    const char *btn_labels_row2[] = {"NET", "EXIT"};
+    const char *btn_labels_row2[] = {"OPT", "NET", "EXIT"};
     u32 clrExit = C2D_Color32(0xFF, 0x00, 0x00, 0xFF);  // Red for exit button
     u32 clrNet = C2D_Color32(0x00, 0xFF, 0xFF, 0xFF);   // Cyan for net button
+    u32 clrOpt = C2D_Color32(0xFF, 0xAA, 0x00, 0xFF);   // Orange for opt button
     
     // Row 1: 4 buttons (LOAD, DEL, DUP, REN)
     for (int i = 0; i < 4; i++) {
@@ -74,17 +76,18 @@ void render_show_manager(void)
         draw_debug_text(&g_botScreen, btn_labels_row1[i], btn_x + 4, btn_row1_y - 1, 0.4f, clrText);
     }
     
-    // Row 2: 2 buttons (NET, EXIT)
-    for (int i = 0; i < 2; i++) {
-        float btn_x = i * btn_width_2;
-        C2D_DrawRectSolid(btn_x, btn_row2_y, 0.5f, btn_width_2 - 1, 14, clrBtnBg);
-        C2D_DrawRectangle(btn_x, btn_row2_y, 0.5f, btn_width_2 - 1, 14, clrBorder, clrBorder, clrBorder, clrBorder);
+    // Row 2: 3 buttons (OPT, NET, EXIT)
+    for (int i = 0; i < 3; i++) {
+        float btn_x = i * btn_width_3;
+        C2D_DrawRectSolid(btn_x, btn_row2_y, 0.5f, btn_width_3 - 1, 14, clrBtnBg);
+        C2D_DrawRectangle(btn_x, btn_row2_y, 0.5f, btn_width_3 - 1, 14, clrBorder, clrBorder, clrBorder, clrBorder);
         
         u32 btn_color = clrText;
-        if (i == 0) btn_color = clrNet;   // Cyan for NET
-        else if (i == 1) btn_color = clrExit;  // Red for EXIT
+        if (i == 0) btn_color = clrOpt;   // Orange for OPT
+        else if (i == 1) btn_color = clrNet;   // Cyan for NET
+        else if (i == 2) btn_color = clrExit;  // Red for EXIT
         
-        draw_debug_text(&g_botScreen, btn_labels_row2[i], btn_x + 10, btn_row2_y - 1, 0.4f, btn_color);
+        draw_debug_text(&g_botScreen, btn_labels_row2[i], btn_x + 6, btn_row2_y - 1, 0.4f, btn_color);
     }
 }
 
@@ -170,12 +173,16 @@ void handle_manager_input(void)
                     g_rename_input_pos = strlen(g_new_name);
                     g_renaming = 1;
                 }
-            } else if (check_button_touch(BTN_NET)) {
+            } else if (check_button_touch(4)) {  // Button 4 = OPT
+                // OPT button - open options window
+                g_options_window_open = 1;
+                g_options_selected_checkbox = 0;
+            } else if (check_button_touch(5)) {  // Button 5 = NET
                 // NET button - open network configuration window
                 g_net_config_open = 1;
                 g_net_selected_field = 0;
                 g_net_digit_index = 0;
-            } else if (check_button_touch(5)) {  // Button 5 = EXIT
+            } else if (check_button_touch(6)) {  // Button 6 = EXIT
                 // EXIT button - save if modified, then close
                 if (g_show_modified) {
                     save_show_to_file(&g_current_show);
@@ -193,23 +200,23 @@ int check_button_touch(int button_idx)
     
     // Button layout (2 rows):
     // Row 1 (y=210): LOAD(0), DEL(1), DUP(2), REN(3) - 4 buttons
-    // Row 2 (y=225): NET(4), EXIT(5) - 2 buttons
+    // Row 2 (y=225): OPT(4), NET(5), EXIT(6) - 3 buttons
     
     float btn_row1_y = 210.0f;
     float btn_row2_y = 225.0f;
     float btn_width_4 = SCREEN_WIDTH_BOT / 4.0f;
-    float btn_width_2 = SCREEN_WIDTH_BOT / 2.0f;
+    float btn_width_3 = SCREEN_WIDTH_BOT / 3.0f;
     
     if (button_idx >= 0 && button_idx < 4) {
         // Row 1 buttons
         float btn_x = button_idx * btn_width_4;
         return (g_touchPos.px >= btn_x && g_touchPos.px < btn_x + btn_width_4 &&
                 g_touchPos.py >= btn_row1_y && g_touchPos.py < btn_row1_y + 14);
-    } else if (button_idx >= 4 && button_idx < 6) {
-        // Row 2 buttons (map indices 4,5 to positions 0,1)
+    } else if (button_idx >= 4 && button_idx < 7) {
+        // Row 2 buttons (map indices 4,5,6 to positions 0,1,2)
         int row2_idx = button_idx - 4;
-        float btn_x = row2_idx * btn_width_2;
-        return (g_touchPos.px >= btn_x && g_touchPos.px < btn_x + btn_width_2 &&
+        float btn_x = row2_idx * btn_width_3;
+        return (g_touchPos.px >= btn_x && g_touchPos.px < btn_x + btn_width_3 &&
                 g_touchPos.py >= btn_row2_y && g_touchPos.py < btn_row2_y + 14);
     }
     

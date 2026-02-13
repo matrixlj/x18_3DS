@@ -6,6 +6,7 @@
 #include "network_config_window.h"
 #include "show_info_panel.h"
 #include "eq_window.h"
+#include "options_window.h"
 
 // Color constants
 #define CLR_BG_DARK C2D_Color32(0x1A, 0x1A, 0x1A, 0xFF)
@@ -40,6 +41,9 @@ void render_top_screen(void)
         render_net_config_window();
         return;
     }
+    
+    // If options window is open on bottom screen, top screen shows normal info
+    // (options renders itself on bottom screen)
     
     if (g_app_mode == APP_MODE_MANAGER) {
         // Manager mode: render show info panel on top screen
@@ -293,6 +297,10 @@ void render_frame(void)
         // Render network config window if open
         if (g_net_config_open) {
             render_net_config_window();
+        }
+        // Render options window if open (on bottom screen)
+        if (g_options_window_open) {
+            render_options_window();
         }
     }
     
