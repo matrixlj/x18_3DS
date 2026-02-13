@@ -120,8 +120,11 @@ void render_options_window(void)
     float checkbox_x = win_x + 20;
     float checkbox_size = 22;
     
-    // Draw label for checkbox 1 FIRST (above checkbox)
-    draw_debug_text(&g_botScreen, "FADER", checkbox_x + 4, y1 - 18, 0.8f, clrLabel);
+    // Draw background box for label 1
+    C2D_DrawRectSolid(checkbox_x - 2, y1 - 22, 0.61f, 50, 18, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
+    
+    // Draw label for checkbox 1 FIRST (above checkbox) - with black text on colored bg
+    draw_debug_text(&g_botScreen, "FADER", checkbox_x + 4, y1 - 18, 1.0f, clrLabel);
     
     // Determine checkbox color based on state
     u32 box1_color = g_options.send_fader ? clrCheckboxEnabled : clrCheckboxDisabled;
@@ -148,8 +151,11 @@ void render_options_window(void)
     // ===== CHECKBOX 2: Send EQ =====
     float y2 = win_y + 105;
     
+    // Draw background box for label 2
+    C2D_DrawRectSolid(checkbox_x - 2, y2 - 22, 0.61f, 70, 18, C2D_Color32(0x00, 0x00, 0x00, 0xFF));
+    
     // Draw label for checkbox 2 FIRST (above checkbox)
-    draw_debug_text(&g_botScreen, "EQUALIZER", checkbox_x + 4, y2 - 18, 0.8f, clrLabel);
+    draw_debug_text(&g_botScreen, "EQUALIZER", checkbox_x + 4, y2 - 18, 1.0f, clrLabel);
     
     // Determine checkbox color based on state
     u32 box2_color = g_options.send_eq ? clrCheckboxEnabled : clrCheckboxDisabled;
