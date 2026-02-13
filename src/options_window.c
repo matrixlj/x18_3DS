@@ -87,53 +87,56 @@ void render_options_window(void)
 {
     if (!g_options_window_open) return;
     
-    C2D_SceneBegin(g_botScreen.target);
+    // NOTE: C2D_SceneBegin already called by render_show_manager/render_frame
+    // DO NOT call it again here - just draw on top of existing scene
     
-    // Background
+    // Background panel
     u32 clrBg = C2D_Color32(0x20, 0x20, 0x40, 0xFF);
-    u32 clrBorder = C2D_Color32(0x80, 0x80, 0xFF, 0xFF);
+    u32 clrBorder = C2D_Color32(0xFF, 0xFF, 0x00, 0xFF);
     u32 clrLabel = C2D_Color32(0x80, 0xFF, 0xFF, 0xFF);
     u32 clrText = C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF);
     u32 clrCheckboxBg = C2D_Color32(0x15, 0x15, 0x25, 0xFF);
-    u32 clrCheckboxSelected = C2D_Color32(0x00, 0x00, 0xFF, 0xFF);
+    u32 clrCheckboxSelected = C2D_Color32(0x00, 0x88, 0xFF, 0xFF);
     u32 clrCheckmark = C2D_Color32(0x00, 0xFF, 0x00, 0xFF);
     
+    // Draw semi-transparent dark background
     C2D_DrawRectSolid(0, 0, 0.5f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, clrBg);
     C2D_DrawRectangle(0, 0, 0.5f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, clrBorder, clrBorder, clrBorder, clrBorder);
     
     // Title
-    draw_debug_text(&g_botScreen, "OSC Send Options", 10, 20, 0.5f, clrLabel);
+    draw_debug_text(&g_botScreen, "OSC Send Options", 15, 15, 0.6f, clrLabel);
     
     // Checkbox 1: Fader
-    float checkbox_y1 = 70;
-    float checkbox_x = 30;
+    float checkbox_y1 = 65;
+    float checkbox_x = 25;
+    float checkbox_size = 28;
     u32 checkbox1_color = (g_options_selected_checkbox == 0) ? clrCheckboxSelected : clrCheckboxBg;
     
-    C2D_DrawRectSolid(checkbox_x, checkbox_y1, 0.51f, 16, 16, checkbox1_color);
-    C2D_DrawRectangle(checkbox_x, checkbox_y1, 0.51f, 16, 16, clrBorder, clrBorder, clrBorder, clrBorder);
+    C2D_DrawRectSolid(checkbox_x, checkbox_y1, 0.51f, checkbox_size, checkbox_size, checkbox1_color);
+    C2D_DrawRectangle(checkbox_x, checkbox_y1, 0.51f, checkbox_size, checkbox_size, clrBorder, clrBorder, clrBorder, clrBorder);
     
     if (g_options.send_fader) {
-        draw_debug_text(&g_botScreen, "✓", checkbox_x + 3, checkbox_y1 + 2, 0.4f, clrCheckmark);
+        draw_debug_text(&g_botScreen, "✓", checkbox_x + 5, checkbox_y1 + 3, 0.6f, clrCheckmark);
     }
     
-    draw_debug_text(&g_botScreen, "Send Fader", checkbox_x + 30, checkbox_y1 + 2, 0.35f, clrText);
+    draw_debug_text(&g_botScreen, "Send Fader", checkbox_x + 40, checkbox_y1 + 4, 0.55f, clrText);
     
     // Checkbox 2: EQ
-    float checkbox_y2 = 130;
+    float checkbox_y2 = 125;
     u32 checkbox2_color = (g_options_selected_checkbox == 1) ? clrCheckboxSelected : clrCheckboxBg;
     
-    C2D_DrawRectSolid(checkbox_x, checkbox_y2, 0.51f, 16, 16, checkbox2_color);
-    C2D_DrawRectangle(checkbox_x, checkbox_y2, 0.51f, 16, 16, clrBorder, clrBorder, clrBorder, clrBorder);
+    C2D_DrawRectSolid(checkbox_x, checkbox_y2, 0.51f, checkbox_size, checkbox_size, checkbox2_color);
+    C2D_DrawRectangle(checkbox_x, checkbox_y2, 0.51f, checkbox_size, checkbox_size, clrBorder, clrBorder, clrBorder, clrBorder);
     
     if (g_options.send_eq) {
-        draw_debug_text(&g_botScreen, "✓", checkbox_x + 3, checkbox_y2 + 2, 0.4f, clrCheckmark);
+        draw_debug_text(&g_botScreen, "✓", checkbox_x + 5, checkbox_y2 + 3, 0.6f, clrCheckmark);
     }
     
-    draw_debug_text(&g_botScreen, "Send Equalizer", checkbox_x + 30, checkbox_y2 + 2, 0.35f, clrText);
+    draw_debug_text(&g_botScreen, "Send Equalizer", checkbox_x + 40, checkbox_y2 + 4, 0.55f, clrText);
     
     // Help text
-    draw_debug_text(&g_botScreen, "Up/Down: Navigate", 20, 200, 0.3f, clrLabel);
-    draw_debug_text(&g_botScreen, "A: Toggle  B: Close", 20, 215, 0.3f, clrLabel);
+    draw_debug_text(&g_botScreen, "Up/Down: Navigate", 20, 185, 0.4f, clrLabel);
+    draw_debug_text(&g_botScreen, "A: Toggle    B: Close", 20, 205, 0.4f, clrLabel);
 }
 
 // Handle input for options window
