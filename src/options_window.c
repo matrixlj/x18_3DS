@@ -120,6 +120,9 @@ void render_options_window(void)
     float checkbox_x = win_x + 20;
     float checkbox_size = 22;
     
+    // Draw label for checkbox 1 FIRST (above checkbox)
+    draw_debug_text(&g_botScreen, "FADER", checkbox_x + 4, y1 - 18, 0.8f, clrLabel);
+    
     // Determine checkbox color based on state
     u32 box1_color = g_options.send_fader ? clrCheckboxEnabled : clrCheckboxDisabled;
     
@@ -137,9 +140,6 @@ void render_options_window(void)
         draw_debug_text(&g_botScreen, "✗", checkbox_x + 2, y1 + 1, 0.8f, C2D_Color32(0xFF, 0x00, 0x00, 0xFF));
     }
     
-    // Draw label for checkbox 1 - positioned clearly to the right
-    draw_debug_text(&g_botScreen, "Send Fader", win_x + 55, y1, 0.65f, clrLabel);
-    
     // Add indicator bar below checkbox 1 if selected for navigation
     if (g_options_selected_checkbox == 0) {
         C2D_DrawRectSolid(checkbox_x, y1 + checkbox_size + 3, 0.62f, checkbox_size + 120, 2, clrTitle);
@@ -147,6 +147,9 @@ void render_options_window(void)
     
     // ===== CHECKBOX 2: Send EQ =====
     float y2 = win_y + 105;
+    
+    // Draw label for checkbox 2 FIRST (above checkbox)
+    draw_debug_text(&g_botScreen, "EQUALIZER", checkbox_x + 4, y2 - 18, 0.8f, clrLabel);
     
     // Determine checkbox color based on state
     u32 box2_color = g_options.send_eq ? clrCheckboxEnabled : clrCheckboxDisabled;
@@ -164,9 +167,6 @@ void render_options_window(void)
     } else {
         draw_debug_text(&g_botScreen, "✗", checkbox_x + 2, y2 + 1, 0.8f, C2D_Color32(0xFF, 0x00, 0x00, 0xFF));
     }
-    
-    // Draw label for checkbox 2 - positioned clearly to the right
-    draw_debug_text(&g_botScreen, "Send Equalizer", win_x + 55, y2, 0.65f, clrLabel);
     
     // Add indicator bar below checkbox 2 if selected for navigation
     if (g_options_selected_checkbox == 1) {
