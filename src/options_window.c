@@ -116,46 +116,46 @@ void render_options_window(void)
     draw_debug_text(&g_botScreen, "OSC Options", win_x + 10, win_y + 10, 0.5f, clrTitle);
     
     // Checkbox 1: Send Fader
-    float checkbox_y1 = win_y + 45;
-    float checkbox_x = win_x + 20;
-    float checkbox_size = 20;
+    float checkbox_y1 = win_y + 40;
+    float checkbox_x = win_x + 15;
+    float checkbox_size = 24;
     u32 checkbox1_color = (g_options_selected_checkbox == 0) ? clrCheckboxSelected : clrCheckboxBg;
     
     // Draw checkbox 1 background
     C2D_DrawRectSolid(checkbox_x, checkbox_y1, 0.61f, checkbox_size, checkbox_size, checkbox1_color);
     // Draw checkbox 1 border
-    C2D_DrawRectSolid(checkbox_x, checkbox_y1, 0.62f, checkbox_size, 1, clrWinBorder);   // Top
-    C2D_DrawRectSolid(checkbox_x, checkbox_y1 + checkbox_size - 1, 0.62f, checkbox_size, 1, clrWinBorder); // Bottom
-    C2D_DrawRectSolid(checkbox_x, checkbox_y1, 0.62f, 1, checkbox_size, clrWinBorder);   // Left
-    C2D_DrawRectSolid(checkbox_x + checkbox_size - 1, checkbox_y1, 0.62f, 1, checkbox_size, clrWinBorder); // Right
+    C2D_DrawRectSolid(checkbox_x, checkbox_y1, 0.62f, checkbox_size, 2, clrWinBorder);   // Top
+    C2D_DrawRectSolid(checkbox_x, checkbox_y1 + checkbox_size - 2, 0.62f, checkbox_size, 2, clrWinBorder); // Bottom
+    C2D_DrawRectSolid(checkbox_x, checkbox_y1, 0.62f, 2, checkbox_size, clrWinBorder);   // Left
+    C2D_DrawRectSolid(checkbox_x + checkbox_size - 2, checkbox_y1, 0.62f, 2, checkbox_size, clrWinBorder); // Right
     
     // Draw checkmark if enabled
     if (g_options.send_fader) {
-        draw_debug_text(&g_botScreen, "✓", checkbox_x + 3, checkbox_y1 + 2, 0.5f, clrCheckmark);
+        draw_debug_text(&g_botScreen, "✓", checkbox_x + 4, checkbox_y1 + 2, 0.55f, clrCheckmark);
     }
     
     // Label for checkbox 1
-    draw_debug_text(&g_botScreen, "Send Fader", checkbox_x + 30, checkbox_y1 + 3, 0.5f, clrText);
+    draw_debug_text(&g_botScreen, "Send Fader", checkbox_x + 32, checkbox_y1 + 5, 0.55f, clrText);
     
     // Checkbox 2: Send EQ
-    float checkbox_y2 = win_y + 85;
+    float checkbox_y2 = win_y + 90;
     u32 checkbox2_color = (g_options_selected_checkbox == 1) ? clrCheckboxSelected : clrCheckboxBg;
     
     // Draw checkbox 2 background
     C2D_DrawRectSolid(checkbox_x, checkbox_y2, 0.61f, checkbox_size, checkbox_size, checkbox2_color);
     // Draw checkbox 2 border
-    C2D_DrawRectSolid(checkbox_x, checkbox_y2, 0.62f, checkbox_size, 1, clrWinBorder);   // Top
-    C2D_DrawRectSolid(checkbox_x, checkbox_y2 + checkbox_size - 1, 0.62f, checkbox_size, 1, clrWinBorder); // Bottom
-    C2D_DrawRectSolid(checkbox_x, checkbox_y2, 0.62f, 1, checkbox_size, clrWinBorder);   // Left
-    C2D_DrawRectSolid(checkbox_x + checkbox_size - 1, checkbox_y2, 0.62f, 1, checkbox_size, clrWinBorder); // Right
+    C2D_DrawRectSolid(checkbox_x, checkbox_y2, 0.62f, checkbox_size, 2, clrWinBorder);   // Top
+    C2D_DrawRectSolid(checkbox_x, checkbox_y2 + checkbox_size - 2, 0.62f, checkbox_size, 2, clrWinBorder); // Bottom
+    C2D_DrawRectSolid(checkbox_x, checkbox_y2, 0.62f, 2, checkbox_size, clrWinBorder);   // Left
+    C2D_DrawRectSolid(checkbox_x + checkbox_size - 2, checkbox_y2, 0.62f, 2, checkbox_size, clrWinBorder); // Right
     
     // Draw checkmark if enabled
     if (g_options.send_eq) {
-        draw_debug_text(&g_botScreen, "✓", checkbox_x + 3, checkbox_y2 + 2, 0.5f, clrCheckmark);
+        draw_debug_text(&g_botScreen, "✓", checkbox_x + 4, checkbox_y2 + 2, 0.55f, clrCheckmark);
     }
     
     // Label for checkbox 2
-    draw_debug_text(&g_botScreen, "Send Equalizer", checkbox_x + 30, checkbox_y2 + 3, 0.5f, clrText);
+    draw_debug_text(&g_botScreen, "Send Equalizer", checkbox_x + 32, checkbox_y2 + 5, 0.55f, clrText);
 }
 
 // Handle input for options window
@@ -163,6 +163,7 @@ void handle_options_input(u32 kDown)
 {
     if (!g_options_window_open) return;
     
+    // Keyboard navigation
     if (kDown & KEY_UP) {
         g_options_selected_checkbox = 0;
     }
@@ -170,8 +171,8 @@ void handle_options_input(u32 kDown)
         g_options_selected_checkbox = 1;
     }
     
+    // Toggle with A button
     if (kDown & KEY_A) {
-        // Toggle selected checkbox
         if (g_options_selected_checkbox == 0) {
             g_options.send_fader = 1 - g_options.send_fader;
         } else {
@@ -180,7 +181,37 @@ void handle_options_input(u32 kDown)
         save_options();
     }
     
+    // Close with B button
     if (kDown & KEY_B) {
         g_options_window_open = 0;
+    }
+    
+    // Touch input detection
+    if (g_isTouched) {
+        float win_w = 220.0f;
+        float win_h = 160.0f;
+        float win_x = (SCREEN_WIDTH_BOT - win_w) / 2.0f;
+        float win_y = (SCREEN_HEIGHT_BOT - win_h) / 2.0f;
+        
+        float checkbox_x = win_x + 15;
+        float checkbox_y1 = win_y + 40;
+        float checkbox_y2 = win_y + 90;
+        float checkbox_size = 24;
+        
+        // Check if touch is on checkbox 1 (fader)
+        if (g_touchPos.px >= checkbox_x && g_touchPos.px < checkbox_x + checkbox_size &&
+            g_touchPos.py >= checkbox_y1 && g_touchPos.py < checkbox_y1 + checkbox_size) {
+            g_options.send_fader = 1 - g_options.send_fader;
+            save_options();
+            g_options_selected_checkbox = 0;
+        }
+        
+        // Check if touch is on checkbox 2 (eq)
+        if (g_touchPos.px >= checkbox_x && g_touchPos.px < checkbox_x + checkbox_size &&
+            g_touchPos.py >= checkbox_y2 && g_touchPos.py < checkbox_y2 + checkbox_size) {
+            g_options.send_eq = 1 - g_options.send_eq;
+            save_options();
+            g_options_selected_checkbox = 1;
+        }
     }
 }
