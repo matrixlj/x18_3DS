@@ -68,8 +68,8 @@ void render_net_config_window(void)
     // Draw IP address character by character, highlighting the selected digit in red
     if (g_net_selected_field == 0) {
         // Draw IP with selected digit highlighted
-        int char_idx = 0;
         int digit_idx = 0;
+        int digit_x_count = 0;  // Count only non-dot characters for x position
         for (int i = 0; ip_display[i] != '\0'; i++) {
             char ch = ip_display[i];
             u32 color = clrText;
@@ -86,9 +86,14 @@ void render_net_config_window(void)
             }
             
             // Draw the character (larger and bold if selected)
+            // Use digit_x_count for position to avoid offset from dots
             char char_str[2] = {ch, '\0'};
-            draw_debug_text(&g_topScreen, char_str, ip_input_x + 4 + char_idx * 9, field_y - 1, scale, color);
-            char_idx++;
+            draw_debug_text(&g_topScreen, char_str, ip_input_x + 4 + digit_x_count * 9, field_y - 1, scale, color);
+            
+            // Only increment x position counter for non-dot characters
+            if (ch != '.') {
+                digit_x_count++;
+            }
         }
     } else {
         u32 ip_text_color = clrText;
