@@ -96,9 +96,12 @@ void handle_manager_input(void)
     u32 kDown = hidKeysDown();
     int touch_edge = g_isTouched && !g_wasTouched;
     
-    // If network config window is open, handle its input and disable touch
+    // If network config window is open, handle its input
     if (g_net_config_open) {
         handle_net_config_input(kDown);
+        if (g_isTouched) {
+            handle_net_config_touch(g_touchPos);
+        }
         return;  // Touch is disabled while window is open
     }
     
@@ -181,9 +184,8 @@ void handle_manager_input(void)
                 // NET button - open network configuration window
                 g_net_config_open = 1;
                 g_net_selected_field = 0;
-                g_net_digit_index = 0;
-                g_net_preset_mode = -1;         // Reset to no preset selected
-                g_net_edit_mode = 0;            // Start in preset selection mode
+                g_net_keyboard_selected = 0;    // Start on first keyboard key
+                load_network_config_from_file();  // Load from file if exists
             } else if (check_button_touch(6)) {  // Button 6 = EXIT
                 // EXIT button - save if modified, then close
                 if (g_show_modified) {

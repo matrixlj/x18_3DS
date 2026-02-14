@@ -869,10 +869,11 @@ void load_network_config(void)
     FILE *f = fopen("/3ds/x18mixer/net.txt", "r");
     if (!f) {
         // Use defaults if file doesn't exist
-        if (dbg) fprintf(dbg, "[LOAD_CONFIG] File not found, using defaults\n");
-        strcpy(g_net_ip_digits, "10101099112");
+        if (dbg) fprintf(dbg, "[LOAD_CONFIG] File not found, using empty fields\n");
         strcpy(g_mixer_host, "10.10.99.112");
-        snprintf(g_net_port_input, sizeof(g_net_port_input), "%d", g_mixer_port);
+        g_mixer_port = 10023;
+        g_net_ip_input[0] = '\0';
+        g_net_port_input[0] = '\0';
         if (dbg) fprintf(dbg, "[LOAD_CONFIG] Defaults: host='%s', port=%d\n", g_mixer_host, g_mixer_port);
         if (dbg) fclose(dbg);
         return;
@@ -880,49 +881,47 @@ void load_network_config(void)
     
     if (dbg) fprintf(dbg, "[LOAD_CONFIG] File found, reading...\n");
     
-    // Parse config file: "IP PORT"
-    char line[256];
-    if (fgets(line, sizeof(line), f)) {
-        char ip[16];
-        int port;
-        int parsed = sscanf(line, "%15s %d", ip, &port);
-        if (dbg) fprintf(dbg, "[LOAD_CONFIG] Read line: '%s', parsed=%d items\n", line, parsed);
-        
-        if (parsed == 2) {
-            // Validate IP by trying to parse it with inet_pton
-            struct in_addr temp;
-            int valid = inet_pton(AF_INET, ip, &temp);
-            if (dbg) fprintf(dbg, "[LOAD_CONFIG] inet_pton validation: %d for IP '%s'\n", valid, ip);
-            
-            if (valid > 0) {
-                // Valid IP format - use it
-                strcpy(g_mixer_host, ip);
-                g_mixer_port = port;
-                
-                // Also update digit representation
-                int digit_idx = 0;
-                for (int i = 0; ip[i] != '\0' && digit_idx < 12; i++) {
-                    if (isdigit((unsigned char)ip[i])) {
-                        g_net_ip_digits[digit_idx++] = ip[i];
-                    }
-                }
-                g_net_ip_digits[digit_idx] = '\0';  // Null terminate
-                
-                if (dbg) fprintf(dbg, "[LOAD_CONFIG] Loaded valid: host='%s', port=%d\n", g_mixer_host, g_mixer_port);
-            } else {
-                // Invalid IP - use defaults
-                if (dbg) fprintf(dbg, "[LOAD_CONFIG] Invalid IP format, using defaults\n");
-                strcpy(g_net_ip_digits, "10101099112");
-                strcpy(g_mixer_host, "10.10.99.112");
-                snprintf(g_net_port_input, sizeof(g_net_port_input), "%d", g_mixer_port);
-            }
-        } else {
-            if (dbg) fprintf(dbg, "[LOAD_CONFIG] Failed to parse, using defaults\n");
-            strcpy(g_net_ip_digits, "10101099112");
-            strcpy(g_mixer_host, "10.10.99.112");
-            snprintf(g_net_port_input, sizeof(g_net_port_input), "%d", g_mixer_port);
+    // Read IP (first line)
+    if (fgets(g_net_ip_input, sizeof(g_net_ip_input), f)) {
+        size_t len = strlen(g_net_ip_input);
+        if (len > 0 && g_net_ip_input[len - 1] == '\n') {
+            g_net_ip_input[len - 1] = '\0';
+        }
+        if (dbg) fprintf(dbg, "[LOAD_CONFIG] Read IP: '%s'\n", g_net_ip_input);
+    } else {
+        g_net_ip_input[0] = '\0';
+    }
+    
+    // Read Port (second line)
+    if (fgets(g_net_port_input, sizeof(g_net_port_input), f)) {
+        size_t len = strlen(g_net_port_input);
+        if (len > 0 && g_net_port_input[len - 1] == '\n') {
+            g_net_port_input[len - 1] = '\0';
+        }
+        if (dbg) fprintf(dbg, "[LOAD_CONFIG] Read Port: '%s'\n", g_net_port_input);
+    } else {
+        g_net_port_input[0] = '\0';
+    }
+    
+    // Update g_mixer_host and g_mixer_port if IP is valid
+    if (strlen(g_net_ip_input) > 0) {
+        // Try to validate the IP
+        struct in_addr temp;
+        int valid = inet_pton(AF_INET, g_net_ip_input, &temp);
+        if (valid > 0) {
+            strcpy(g_mixer_host, g_net_ip_input);
+            if (dbg) fprintf(dbg, "[LOAD_CONFIG] Updated g_mixer_host to: %s\n", g_mixer_host);
         }
     }
+    
+    if (strlen(g_net_port_input) > 0) {
+        int port = atoi(g_net_port_input);
+        if (port > 0 && port <= 65535) {
+            g_mixer_port = port;
+            if (dbg) fprintf(dbg, "[LOAD_CONFIG] Updated g_mixer_port to: %d\n", g_mixer_port);
+        }
+    }
+    
     fclose(f);
     if (dbg) fclose(dbg);
 }
@@ -939,35 +938,29 @@ void save_network_config(void)
         return;
     }
     
-    // Parse and validate port
-    int port = atoi(g_net_port_input);
-    if (port <= 0 || port > 65535) {
-        port = 10023;  // Default
+    // Validate IP if not empty
+    if (strlen(g_net_ip_input) > 0) {
+        struct in_addr temp;
+        int valid = inet_pton(AF_INET, g_net_ip_input, &temp);
+        if (valid > 0) {
+            // Valid IP - save it
+            strcpy(g_mixer_host, g_net_ip_input);
+        }
     }
     
-    // Convert 12 digits to proper IP format (without leading zeros)
-    // g_net_ip_digits = "101099112" (9 digits) -> need to pad to 12: "000101099112"
-    // Then format as: octet1.octet2.octet3.octet4
-    char padded[13] = {0};
-    int len = strlen(g_net_ip_digits);
-    int pad_count = 12 - len;
-    for (int i = 0; i < pad_count; i++) padded[i] = '0';
-    strcpy(padded + pad_count, g_net_ip_digits);
-    
-    // Extract 4 octets as integers (removes leading zeros automatically)
-    int oct1 = ((padded[0]-'0')*100 + (padded[1]-'0')*10 + (padded[2]-'0'));
-    int oct2 = ((padded[3]-'0')*100 + (padded[4]-'0')*10 + (padded[5]-'0'));
-    int oct3 = ((padded[6]-'0')*100 + (padded[7]-'0')*10 + (padded[8]-'0'));
-    int oct4 = ((padded[9]-'0')*100 + (padded[10]-'0')*10 + (padded[11]-'0'));
-    
-    // Write as proper IP without leading zeros
-    char ip_proper[20];
-    snprintf(ip_proper, sizeof(ip_proper), "%d.%d.%d.%d", oct1, oct2, oct3, oct4);
-    fprintf(f, "%s %d\n", ip_proper, port);
-    
-    // Also update the global config
-    strcpy(g_mixer_host, ip_proper);
+    // Validate and parse port if not empty
+    int port = 10023;  // Default
+    if (strlen(g_net_port_input) > 0) {
+        port = atoi(g_net_port_input);
+        if (port <= 0 || port > 65535) {
+            port = 10023;
+        }
+    }
     g_mixer_port = port;
+    
+    // Write IP and Port to file (each on separate line)
+    fprintf(f, "%s\n", g_net_ip_input);
+    fprintf(f, "%d\n", port);
     
     fflush(f);
     fsync(fileno(f));
@@ -1076,6 +1069,11 @@ void update_mixer_touch(void)
     if (!g_isTouched) {
         g_touched_fader_index = -1;
         return;
+    }
+    
+    // If we're in manager mode or network config is open, skip mixer touch processing
+    if (g_app_mode == APP_MODE_MANAGER || g_net_config_open) {
+        return;  // Manager/Network config handle their own touch
     }
     
     // If EQ window is open, handle EQ touch input instead

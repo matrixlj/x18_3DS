@@ -105,13 +105,11 @@ extern int g_eq_save_btn_pressed;
 // ============================================================================
 
 extern int g_net_config_open;
-extern char g_net_ip_digits[13];
-extern char g_net_port_input[6];
-extern int g_net_selected_field;
-extern int g_net_digit_index;
-extern int g_net_preset_mode;        // 0=Localhost, 1=Local, 2=Manual, -1=none
-extern int g_net_edit_mode;          // 1 if editing IP/Port, 0 if selecting presets
-extern int g_net_keyboard_selected;  // Which key is selected on virtual keyboard (0-11, -1=none)
+extern char g_net_ip_input[64];      // IP address string with dots
+extern char g_net_port_input[6];     // Port number
+extern int g_net_selected_field;     // 0=IP, 1=Port
+extern int g_net_keyboard_selected;  // Which key on virtual keyboard
+extern u32 g_net_last_key_time;      // For debouncing
 
 // ============================================================================
 // GLOBAL STATE - TOUCH INPUT

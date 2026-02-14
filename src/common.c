@@ -81,13 +81,11 @@ int g_eq_save_btn_pressed = 0;  // Tracks if SAVE button is currently pressed (f
 // ============================================================================
 
 int g_net_config_open = 0;
-char g_net_ip_digits[13] = "0";
-char g_net_port_input[6] = "0";
-int g_net_selected_field = 0;
-int g_net_digit_index = 0;
-int g_net_preset_mode = -1;         // -1=none, 0=Localhost, 1=Local, 2=Manual
-int g_net_edit_mode = 0;            // 0=preset selection, 1=manual edit
-int g_net_keyboard_selected = -1;   // Virtual keyboard key selection
+char g_net_ip_input[64] = "";        // IP with dots
+char g_net_port_input[6] = "";       // Port number
+int g_net_selected_field = 0;        // 0=IP, 1=Port
+int g_net_keyboard_selected = 0;     // Virtual keyboard key
+u32 g_net_last_key_time = 0;         // For debouncing (milliseconds)
 
 // ============================================================================
 // GRAPHICS RESOURCES
