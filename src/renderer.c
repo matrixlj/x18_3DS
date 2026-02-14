@@ -173,7 +173,6 @@ void render_bot_screen(void)
     u32 clrMuteMain = C2D_Color32(0xDD, 0x33, 0x33, 0xFF);
     u32 clrMuteLight = C2D_Color32(0xFF, 0x66, 0x66, 0xFF);
     u32 clrMuteDark = C2D_Color32(0x88, 0x00, 0x00, 0xFF);
-    u32 clrEqMain = C2D_Color32(0x33, 0xDD, 0x33, 0xFF);
     u32 clrEqLight = C2D_Color32(0x66, 0xFF, 0x66, 0xFF);
     u32 clrEqDark = C2D_Color32(0x00, 0x88, 0x00, 0xFF);
     u32 clrText = C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF);
@@ -190,11 +189,13 @@ void render_bot_screen(void)
         // Channel border
         C2D_DrawRectangle(f->x, f->y, 0.5f, f->w, f->h, clrBorder, clrBorder, clrBorder, clrBorder);
         
-        // EQ button at top (NEW POSITION)
-        u32 eq_color_main = f->eq_enabled ? clrEqDark : clrEqMain;
-        u32 eq_color_light = f->eq_enabled ? C2D_Color32(0x88, 0xFF, 0x88, 0xFF) : clrEqLight;
-        u32 eq_color_dark = f->eq_enabled ? clrEqLight : clrEqDark;
-        draw_3d_button(f->x + 1, 5, f->w - 2, 14, eq_color_main, eq_color_light, eq_color_dark, f->eq_enabled);
+        // EQ button at top - color based on channel EQ enabled/disabled state
+        // Get current EQ state from selected step
+        ChannelEQ *eq = &g_current_show.steps[g_selected_step].eqs[i];
+        u32 eq_color_main = eq->enabled ? clrEqLight : clrEqDark;
+        u32 eq_color_light = eq->enabled ? C2D_Color32(0x88, 0xFF, 0x88, 0xFF) : C2D_Color32(0x44, 0x66, 0x44, 0xFF);
+        u32 eq_color_dark = eq->enabled ? clrEqDark : C2D_Color32(0x00, 0x44, 0x00, 0xFF);
+        draw_3d_button(f->x + 1, 5, f->w - 2, 14, eq_color_main, eq_color_light, eq_color_dark, 0);
         draw_debug_text(&g_botScreen, "Eq", f->x + 2, 7, 0.4f, clrText);
         
         // Channel number (below EQ button) - LARGER and CENTERED

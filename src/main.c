@@ -83,6 +83,7 @@ static u32 SOC_BUFFER[0x80000 / 4] __attribute__((aligned(0x1000)));
 int load_show_from_file(const char *filename, Show *out_show);
 void apply_step_to_faders(int step_idx);
 void save_show_to_file(Show *show);
+void save_channel_eq_only(int channel);
 void add_step(void);
 void duplicate_step(void);
 void load_network_config(void);
@@ -332,17 +333,20 @@ void send_step_osc(int step_idx)
         osc_send_mute(ch, step->mutes[ch]);
     }
     
-    // Send all EQ data (5 bands per channel) - if enabled
+    // Send all EQ data (5 bands per channel) - if enabled AND channel EQ is enabled
     if (g_options.send_eq) {
         for (int ch = 0; ch < 16; ch++) {
             ChannelEQ *eq = &step->eqs[ch];
-            for (int band = 0; band < 5; band++) {
-                EQBand *eq_band = &eq->bands[band];
-                // Send EQ band type, frequency, gain, Q factor
-                osc_send_eq_param(ch, band, "type", (float)eq_band->type);
-                osc_send_eq_param(ch, band, "f", eq_band->frequency);
-                osc_send_eq_param(ch, band, "g", eq_band->gain);
-                osc_send_eq_param(ch, band, "q", eq_band->q_factor);
+            // Only send EQ data if this channel's EQ is enabled
+            if (eq->enabled) {
+                for (int band = 0; band < 5; band++) {
+                    EQBand *eq_band = &eq->bands[band];
+                    // Send EQ band type, frequency, gain, Q factor
+                    osc_send_eq_param(ch, band, "type", (float)eq_band->type);
+                    osc_send_eq_param(ch, band, "f", eq_band->frequency);
+                    osc_send_eq_param(ch, band, "g", eq_band->gain);
+                    osc_send_eq_param(ch, band, "q", eq_band->q_factor);
+                }
             }
         }
     }
@@ -493,7 +497,8 @@ void save_step_from_faders(int step_idx)
     for (int i = 0; i < 16; i++) {
         step->volumes[i] = g_faders[i].value;
         step->mutes[i] = g_faders[i].muted;
-        step->eqs[i].enabled = g_faders[i].eq_enabled;  // Save enabled flag to ChannelEQ
+        // NOTE: Do NOT overwrite eq_enabled here - it's managed by the EQ window separately
+        // step->eqs[i].enabled is preserved from user's EQ editing
     }
 }
 
@@ -672,6 +677,22 @@ void save_show_to_file(Show *show)
         snprintf(g_save_status, sizeof(g_save_status), "ERROR: Write failed for %s", safe_name);
         g_save_status_timer = 120;
     }
+}
+
+// Save only the EQ for a specific channel in the current step
+// Simply saves the entire current show (all EQ data for all channels)
+// The user is only modifying EQ, so this is safe and reliable
+void save_channel_eq_only(int channel)
+{
+    if (channel < 0 || channel >= 16) return;
+    if (g_selected_step < 0 || g_selected_step >= g_current_show.num_steps) return;
+    
+    // Directly save the entire show to ensure consistency
+    // All EQ data (including this channel) will be persisted
+    save_show_to_file(&g_current_show);
+    
+    snprintf(g_save_status, sizeof(g_save_status), "CH %02d EQ saved", channel + 1);
+    g_save_status_timer = 120;
 }
 
 // Old format structures (for backward compatibility)

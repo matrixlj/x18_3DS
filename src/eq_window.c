@@ -134,12 +134,21 @@ void render_eq_window(void)
     snprintf(header, sizeof(header), "CH %02d", g_eq_editing_channel + 1);
     draw_debug_text(&g_botScreen, header, 8.0f, 3.0f, 0.45f, clrYellow);
     
-    // Enable/Disable button (clickable zone)
-    const char *enable_text = eq->enabled ? "ENABLED" : "DISABLED";
-    u32 enable_color = eq->enabled ? clrGreen : clrRed;
-    C2D_DrawRectSolid(80, 3, 0.5f, 60, 12, enable_color);
-    C2D_DrawRectangle(80, 3, 0.5f, 60, 12, clrBorder, clrBorder, clrBorder, clrBorder);
-    draw_debug_text(&g_botScreen, enable_text, 85.0f, 2.0f, 0.35f, clrWhite);
+    // Enable/Disable button - TOGGLE TYPE (green light when enabled, green dark when disabled)
+    u32 toggle_color_main = eq->enabled ? clrGreen : C2D_Color32(0x00, 0x44, 0x00, 0xFF);
+    u32 toggle_color_light = eq->enabled ? C2D_Color32(0x88, 0xFF, 0x88, 0xFF) : C2D_Color32(0x44, 0x66, 0x44, 0xFF);
+    u32 toggle_color_dark = eq->enabled ? C2D_Color32(0x00, 0x66, 0x00, 0xFF) : C2D_Color32(0x00, 0x22, 0x00, 0xFF);
+    
+    extern int draw_3d_button(float x, float y, float w, float h, u32 color_main, u32 color_light, u32 color_dark, int pressed);
+    draw_3d_button(80, 3, 60, 12, toggle_color_main, toggle_color_light, toggle_color_dark, 0);
+    draw_debug_text(&g_botScreen, eq->enabled ? "ENABLED" : "DISABLED", 85.0f, 2.0f, 0.35f, clrWhite);
+    
+    // SAVE button - MOMENTARY TYPE (dark red normally, bright red when pressed)
+    u32 save_color_main = g_eq_save_btn_pressed ? C2D_Color32(0xFF, 0x44, 0x44, 0xFF) : C2D_Color32(0x88, 0x00, 0x00, 0xFF);
+    u32 save_color_light = g_eq_save_btn_pressed ? C2D_Color32(0xFF, 0x88, 0x88, 0xFF) : C2D_Color32(0xCC, 0x33, 0x33, 0xFF);
+    u32 save_color_dark = g_eq_save_btn_pressed ? C2D_Color32(0xCC, 0x00, 0x00, 0xFF) : C2D_Color32(0x44, 0x00, 0x00, 0xFF);
+    draw_3d_button(250, 3, 60, 12, save_color_main, save_color_light, save_color_dark, g_eq_save_btn_pressed);
+    draw_debug_text(&g_botScreen, "SAVE", 265.0f, 2.0f, 0.4f, clrWhite);
     
     // ===== TYPE SELECTION BUTTONS (20-36px) - 6 types: LCut, Lshv, PEQ, VPEQ, HShv, HCut =====
     EQBand *selected_band = &eq->bands[g_eq_selected_band];
@@ -408,6 +417,7 @@ void handle_eq_input(u32 kDown, u32 kHeld)
     // B: Close EQ window
     if (kDown & KEY_B) {
         g_eq_window_open = 0;
+        g_eq_save_btn_pressed = 0;  // Reset button state when closing
         extern void save_step_from_faders(int step_idx);
         extern void save_show_to_file(Show *show);
         save_step_from_faders(g_selected_step);
@@ -524,8 +534,25 @@ void update_eq_touch(void)
     }
     
     int touch_edge = g_isTouched && !g_wasTouched;
+    int touch_end = !g_isTouched && g_wasTouched;
     
     ChannelEQ *eq = &g_current_show.steps[g_selected_step].eqs[g_eq_editing_channel];
+    
+    // Track SAVE button press state for 3D feedback
+    if (g_isTouched && g_touchPos.px >= 250 && g_touchPos.px < 310 &&
+        g_touchPos.py >= 3 && g_touchPos.py < 15) {
+        g_eq_save_btn_pressed = 1;
+    } else {
+        g_eq_save_btn_pressed = 0;
+    }
+    
+    // Execute SAVE on touch release (not on press)
+    if (touch_end && g_touchPos.px >= 250 && g_touchPos.px < 310 &&
+        g_touchPos.py >= 3 && g_touchPos.py < 15) {
+        extern void save_channel_eq_only(int channel);
+        save_channel_eq_only(g_eq_editing_channel);
+        return;  // Don't process other touches this frame
+    }
     
     // Check if touched ENABLE/DISABLE button (x=80, y=3, w=60, h=12)
     if (touch_edge && g_touchPos.px >= 80 && g_touchPos.px < 140 &&

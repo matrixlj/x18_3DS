@@ -74,6 +74,7 @@ int g_eq_window_open = 0;
 int g_eq_editing_channel = 0;
 int g_eq_selected_band = 0;
 int g_eq_param_selected = 0;
+int g_eq_save_btn_pressed = 0;  // Tracks if SAVE button is currently pressed (for 3D effect)
 
 // ============================================================================
 // GLOBAL STATE - NETWORK CONFIG

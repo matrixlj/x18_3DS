@@ -98,6 +98,7 @@ extern int g_eq_window_open;
 extern int g_eq_editing_channel;
 extern int g_eq_selected_band;
 extern int g_eq_param_selected;
+extern int g_eq_save_btn_pressed;
 
 // ============================================================================
 // GLOBAL STATE - NETWORK CONFIG
