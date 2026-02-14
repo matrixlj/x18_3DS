@@ -46,12 +46,12 @@ void render_show_info_panel(void)
     draw_debug_text(&g_topScreen, "Path:", 20.0f, info_y, 0.4f, clrLabel);
     char path_display[48];
     snprintf(path_display, sizeof(path_display), "/3ds/x18mixer/shows/");
-    draw_debug_text(&g_topScreen, path_display, 20.0f, info_y + 18.0f, 0.3f, clrText);
+    draw_debug_text(&g_topScreen, path_display, 20.0f, info_y + 18.0f, 0.4f, clrText);
     info_y += 40.0f;
     
     char filename[128];
     snprintf(filename, sizeof(filename), "%s.x18s", g_available_shows[g_selected_show]);
-    draw_debug_text(&g_topScreen, filename, 20.0f, info_y, 0.3f, clrText);
+    draw_debug_text(&g_topScreen, filename, 20.0f, info_y, 0.4f, clrText);
     info_y += 25.0f;
     
     // Channels (16)
@@ -70,6 +70,6 @@ void render_show_info_panel(void)
         draw_debug_text(&g_topScreen, g_save_status, 20.0f, SCREEN_HEIGHT_TOP - 30, 0.35f, CLR_GREEN);
     } else {
         // Instructions
-        draw_debug_text(&g_topScreen, "A:Load  B:Delete  Y:Duplicate  X:Rename", 15.0f, SCREEN_HEIGHT_TOP - 30, 0.3f, clrLabel);
+        draw_debug_text(&g_topScreen, "A:Load  B:Delete  Y:Duplicate  X:Rename", 15.0f, SCREEN_HEIGHT_TOP - 30, 0.4f, clrLabel);
     }
 }
