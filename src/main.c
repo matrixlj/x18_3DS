@@ -182,7 +182,8 @@ void osc_send_fader(int channel, float value)
     packet[pos++] = 0;
     
     // Float value (big-endian)
-    uint32_t float_bits = *(uint32_t*)&value;
+    uint32_t float_bits;
+    memcpy(&float_bits, &value, sizeof(float_bits));
     packet[pos++] = (float_bits >> 24) & 0xFF;
     packet[pos++] = (float_bits >> 16) & 0xFF;
     packet[pos++] = (float_bits >> 8) & 0xFF;
@@ -272,7 +273,8 @@ void osc_send_eq_param(int channel, int band, const char *param, float value)
         packet[pos++] = (int_val >> 8) & 0xFF;
         packet[pos++] = int_val & 0xFF;
     } else {
-        uint32_t float_bits = *(uint32_t*)&value;
+        uint32_t float_bits;
+        memcpy(&float_bits, &value, sizeof(float_bits));
         packet[pos++] = (float_bits >> 24) & 0xFF;
         packet[pos++] = (float_bits >> 16) & 0xFF;
         packet[pos++] = (float_bits >> 8) & 0xFF;

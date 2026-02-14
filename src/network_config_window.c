@@ -269,12 +269,16 @@ void handle_net_config_input(u32 kDown)
             
             char digit_ch = '0' + digit;
             if (strlen(current_field) < max_len) {
-                strncat(current_field, &digit_ch, 1);
+                int len = strlen(current_field);
+                current_field[len] = digit_ch;
+                current_field[len + 1] = '\0';
             }
         } else if (g_net_keyboard_selected == 10) {
             // Point pressed (only for IP field)
             if (g_net_selected_field == 0 && strlen(current_field) < max_len) {
-                strncat(current_field, ".", 1);
+                int len = strlen(current_field);
+                current_field[len] = '.';
+                current_field[len + 1] = '\0';
             }
         } else if (g_net_keyboard_selected == 11) {
             // DEL pressed
