@@ -168,7 +168,7 @@ void render_bot_screen(void)
     char debug_msg[128];
     snprintf(debug_msg, sizeof(debug_msg), "RomFS:%d Grip:%d Fader:%d", 
              g_romfs_mounted, g_grip_loaded, g_fader_loaded);
-    draw_debug_text(&g_botScreen, debug_msg, 5, 5, 0.25f, C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF));
+    draw_debug_text(&g_botScreen, debug_msg, 5, 5, 0.30f, C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF));
     
     u32 clrMuteMain = C2D_Color32(0xDD, 0x33, 0x33, 0xFF);
     u32 clrMuteLight = C2D_Color32(0xFF, 0x66, 0x66, 0xFF);

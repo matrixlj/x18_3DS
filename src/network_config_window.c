@@ -97,7 +97,7 @@ void render_net_config_window(void)
         }
     } else {
         u32 ip_text_color = clrText;
-        draw_debug_text(&g_topScreen, ip_display, ip_input_x + 4, field_y - 1, 0.32f, ip_text_color);
+        draw_debug_text(&g_topScreen, ip_display, ip_input_x + 4, field_y - 1, 0.35f, ip_text_color);
     }
     
     // Port label and display
@@ -122,7 +122,7 @@ void render_net_config_window(void)
             char_idx++;
         }
     } else {
-        draw_debug_text(&g_topScreen, g_net_port_input, ip_input_x + 4, port_y - 1, 0.32f, clrText);
+        draw_debug_text(&g_topScreen, g_net_port_input, ip_input_x + 4, port_y - 1, 0.35f, clrText);
     }
     
     // Instructions at the bottom
