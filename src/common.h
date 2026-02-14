@@ -129,6 +129,7 @@ extern int g_romfs_mounted;
 extern int g_grip_loaded;
 extern int g_fader_loaded;
 extern C2D_TextBuf g_textBuf;
+extern C2D_Font g_font;  // System font
 
 // ============================================================================
 // UTILITY FUNCTIONS (in common.c)

@@ -97,6 +97,7 @@ int g_romfs_mounted = 0;
 int g_grip_loaded = 0;
 int g_fader_loaded = 0;
 C2D_TextBuf g_textBuf = NULL;
+C2D_Font g_font = NULL;  // System font for better text rendering
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -107,7 +108,14 @@ void draw_debug_text(C2D_Screen *screen, const char *text, float x, float y, flo
     if (!text || !g_textBuf) return;
     C2D_TextBufClear(g_textBuf);
     C2D_Text c2d_text;
-    C2D_TextParse(&c2d_text, g_textBuf, text);
+    
+    // Use custom font if loaded, otherwise use default
+    if (g_font) {
+        C2D_TextFontParse(&c2d_text, g_font, g_textBuf, text);
+    } else {
+        C2D_TextParse(&c2d_text, g_textBuf, text);
+    }
+    
     C2D_TextOptimize(&c2d_text);
     C2D_DrawText(&c2d_text, C2D_WithColor, x, y, 0.5f, size, size, color);
 }

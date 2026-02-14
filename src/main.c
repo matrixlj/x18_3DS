@@ -1167,6 +1167,14 @@ void init_graphics(void)
     
     g_textBuf = C2D_TextBufNew(2048);
     
+    // Load system font for better text rendering (instead of bitmap fonts)
+    g_font = C2D_FontLoadSystem(CFG_REGION_USA);
+    if (!g_font) {
+        printf("[WARNING] Failed to load system font, will use default font\n");
+    } else {
+        printf("[DEBUG] System font loaded successfully\n");
+    }
+    
     // Ensure sprite sheets are available on SD card (for CIA compatibility)
     ensure_sprite_sheets_on_sd();
     
@@ -1238,6 +1246,12 @@ void cleanup_graphics(void)
     if (g_fader_sheet) {
         C2D_SpriteSheetFree(g_fader_sheet);
         g_fader_sheet = NULL;
+    }
+    
+    // Free font
+    if (g_font) {
+        C2D_FontFree(g_font);
+        g_font = NULL;
     }
     
     if (g_textBuf) {
