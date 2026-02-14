@@ -36,32 +36,32 @@ void render_show_info_panel(void)
     float info_y = 70.0f;
     
     // Number of steps
-    draw_debug_text(&g_topScreen, "Steps:", 20.0f, info_y, 0.4f, clrLabel);
+    draw_debug_text(&g_topScreen, "Steps:", 20.0f, info_y, 0.5f, clrLabel);
     char step_count[32];
     snprintf(step_count, sizeof(step_count), "%d", g_current_show.num_steps);
-    draw_debug_text(&g_topScreen, step_count, 100.0f, info_y, 0.4f, clrText);
+    draw_debug_text(&g_topScreen, step_count, 100.0f, info_y, 0.5f, clrText);
     info_y += 25.0f;
     
     // File path
-    draw_debug_text(&g_topScreen, "Path:", 20.0f, info_y, 0.4f, clrLabel);
+    draw_debug_text(&g_topScreen, "Path:", 20.0f, info_y, 0.5f, clrLabel);
     char path_display[48];
     snprintf(path_display, sizeof(path_display), "/3ds/x18mixer/shows/");
-    draw_debug_text(&g_topScreen, path_display, 20.0f, info_y + 18.0f, 0.4f, clrText);
+    draw_debug_text(&g_topScreen, path_display, 20.0f, info_y + 18.0f, 0.5f, clrText);
     info_y += 40.0f;
     
     char filename[128];
     snprintf(filename, sizeof(filename), "%s.x18s", g_available_shows[g_selected_show]);
-    draw_debug_text(&g_topScreen, filename, 20.0f, info_y, 0.4f, clrText);
+    draw_debug_text(&g_topScreen, filename, 20.0f, info_y, 0.5f, clrText);
     info_y += 25.0f;
     
     // Channels (16)
-    draw_debug_text(&g_topScreen, "Channels:", 20.0f, info_y, 0.4f, clrLabel);
-    draw_debug_text(&g_topScreen, "16 (Mono Channels)", 100.0f, info_y, 0.4f, clrText);
+    draw_debug_text(&g_topScreen, "Channels:", 20.0f, info_y, 0.5f, clrLabel);
+    draw_debug_text(&g_topScreen, "16 (Mono Channels)", 100.0f, info_y, 0.5f, clrText);
     info_y += 25.0f;
     
     // EQ Bands (5 per channel)
-    draw_debug_text(&g_topScreen, "EQ Bands/Ch:", 20.0f, info_y, 0.4f, clrLabel);
-    draw_debug_text(&g_topScreen, "5 (Parametric)", 100.0f, info_y, 0.4f, clrText);
+    draw_debug_text(&g_topScreen, "EQ Bands/Ch:", 20.0f, info_y, 0.5f, clrLabel);
+    draw_debug_text(&g_topScreen, "5 (Parametric)", 100.0f, info_y, 0.5f, clrText);
     info_y += 25.0f;
     
     // Status message
@@ -70,6 +70,6 @@ void render_show_info_panel(void)
         draw_debug_text(&g_topScreen, g_save_status, 20.0f, SCREEN_HEIGHT_TOP - 30, 0.35f, CLR_GREEN);
     } else {
         // Instructions
-        draw_debug_text(&g_topScreen, "A:Load  B:Delete  Y:Duplicate  X:Rename", 15.0f, SCREEN_HEIGHT_TOP - 30, 0.4f, clrLabel);
+        draw_debug_text(&g_topScreen, "A:Load  B:Delete  Y:Duplicate  X:Rename", 15.0f, SCREEN_HEIGHT_TOP - 30, 0.5f, clrLabel);
     }
 }
