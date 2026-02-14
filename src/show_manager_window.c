@@ -182,6 +182,8 @@ void handle_manager_input(void)
                 g_net_config_open = 1;
                 g_net_selected_field = 0;
                 g_net_digit_index = 0;
+                g_net_preset_mode = -1;         // Reset to no preset selected
+                g_net_edit_mode = 0;            // Start in preset selection mode
             } else if (check_button_touch(6)) {  // Button 6 = EXIT
                 // EXIT button - save if modified, then close
                 if (g_show_modified) {

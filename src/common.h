@@ -109,6 +109,8 @@ extern char g_net_ip_digits[13];
 extern char g_net_port_input[6];
 extern int g_net_selected_field;
 extern int g_net_digit_index;
+extern int g_net_preset_mode;        // 0=Localhost, 1=Local, 2=Manual, -1=none
+extern int g_net_edit_mode;          // 1 if editing IP/Port, 0 if selecting presets
 
 // ============================================================================
 // GLOBAL STATE - TOUCH INPUT

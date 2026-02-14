@@ -85,6 +85,8 @@ char g_net_ip_digits[13] = "0";
 char g_net_port_input[6] = "0";
 int g_net_selected_field = 0;
 int g_net_digit_index = 0;
+int g_net_preset_mode = -1;         // -1=none, 0=Localhost, 1=Local, 2=Manual
+int g_net_edit_mode = 0;            // 0=preset selection, 1=manual edit
 
 // ============================================================================
 // GRAPHICS RESOURCES
