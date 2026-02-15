@@ -45,9 +45,9 @@ void render_show_manager(void)
     for (int i = 0; i < g_num_available_shows && i < 12; i++) {
         float item_y = list_y + 2.0f + (i * list_item_h);
         
-        // Highlight selected item
+        // Highlight selected item (high depth - render behind Options window)
         if (i == g_selected_show) {
-            C2D_DrawRectSolid(list_x + 1, item_y, 0.51f, list_w - 2, list_item_h - 1, C2D_Color32(0x00, 0x44, 0x88, 0xFF));
+            C2D_DrawRectSolid(list_x + 1, item_y, 0.60f, list_w - 2, list_item_h - 1, C2D_Color32(0x00, 0x44, 0x88, 0xFF));
         }
         
         u32 text_color = (i == g_selected_show) ? CLR_BORDER_CYAN : CLR_TEXT_SECONDARY;

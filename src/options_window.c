@@ -116,24 +116,24 @@ void save_options(void)
 // Draw a single checkbox with label and status indicator
 static void draw_checkbox_item(float x, float y, const char *label_text, int is_enabled, int is_selected)
 {
-    // Draw checkbox background
+    // Draw checkbox background (low depth - in front of all other elements)
     u32 checkbox_color = is_enabled ? CLR_BORDER_GREEN : CLR_X;
-    C2D_DrawRectSolid(x, y, 0.29f, CHECKBOX_SIZE, CHECKBOX_SIZE, checkbox_color);
+    C2D_DrawRectSolid(x, y, 0.04f, CHECKBOX_SIZE, CHECKBOX_SIZE, checkbox_color);
     
     // Draw 3D checkbox border
     draw_3d_border(x, y, CHECKBOX_SIZE, CHECKBOX_SIZE, CLR_BORDER_BRIGHT, CLR_SHADOW_BLACK, 2);
     
-    // Draw status symbol (✓ or ✗)
-    const char *symbol = is_enabled ? "✓" : "✗";
+    // Draw status symbol (+ for enabled, - for disabled)
+    const char *symbol = is_enabled ? "+" : "-";
     u32 symbol_color = is_enabled ? CLR_BORDER_GREEN : CLR_X;
-    draw_debug_text(&g_botScreen, symbol, x + 4, y + 2, 0.8f, symbol_color);
+    draw_debug_text(&g_botScreen, symbol, x + 6, y + 3, 0.8f, symbol_color);
     
     // Draw label to the right of checkbox
     draw_debug_text(&g_botScreen, label_text, x + CHECKBOX_SIZE + 10, y + 4, 0.55f, CLR_TEXT_PRIMARY);
     
     // Draw selection indicator (underline with bright color)
     if (is_selected) {
-        C2D_DrawRectSolid(x, y + CHECKBOX_SIZE + 3, 0.28f, CHECKBOX_SIZE + 100, 2, CLR_BORDER_CYAN);
+        C2D_DrawRectSolid(x, y + CHECKBOX_SIZE + 3, 0.03f, CHECKBOX_SIZE + 100, 2, CLR_BORDER_CYAN);
     }
 }
 
@@ -145,8 +145,8 @@ void render_options_window(void)
 {
     if (!g_options_window_open) return;
     
-    // Draw window background and borders with 3D effect
-    C2D_DrawRectSolid(WIN_X, WIN_Y, 0.30f, WIN_WIDTH, WIN_HEIGHT, CLR_BG_SECONDARY);
+    // Draw window background and borders with 3D effect (very low depth - in front)
+    C2D_DrawRectSolid(WIN_X, WIN_Y, 0.05f, WIN_WIDTH, WIN_HEIGHT, CLR_BG_SECONDARY);
     draw_3d_border(WIN_X, WIN_Y, WIN_WIDTH, WIN_HEIGHT, CLR_BORDER_BRIGHT, CLR_SHADOW_BLACK, 2);
     
     // Draw title with header style
