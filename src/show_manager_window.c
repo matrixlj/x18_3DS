@@ -5,6 +5,7 @@
 
 // Color for DELETE/EXIT buttons  
 #define CLR_X C2D_Color32(0xFF, 0x00, 0x00, 0xFF)
+#define CLR_BORDER C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF)  // White border for consistency
 
 // Text colors for contrast
 #define CLR_TEXT_DARK C2D_Color32(0x00, 0x00, 0x00, 0xFF)     // Black for bright buttons
@@ -20,6 +21,9 @@ extern int rename_show_file(const char *old, const char *new);
 extern void save_show_to_file(Show *show);
 extern void list_available_shows(void);
 extern void apply_step_to_faders(int step_idx);
+
+// Forward declaration for rename window
+static void handle_rename_touch(touchPosition touch);
 
 void render_show_manager(void)
 {
@@ -188,29 +192,9 @@ void handle_manager_input(void)
     }
     
     if (g_renaming) {
-        // Handle renaming input
-        if (kDown & KEY_A) {
-            // Confirm rename
-            if (g_rename_input_pos > 0) {
-                g_new_name[g_rename_input_pos] = '\0';
-                rename_show_file(g_available_shows[g_selected_show], g_new_name);
-                g_renaming = 0;
-                g_rename_input_pos = 0;
-            }
-        } else if (kDown & KEY_B) {
-            // Cancel rename
-            g_renaming = 0;
-            g_rename_input_pos = 0;
-        } else if (kDown & KEY_DRIGHT) {
-            if (g_rename_input_pos < 60) {
-                g_new_name[g_rename_input_pos] = 'A' + (g_rename_input_pos % 26);
-                g_rename_input_pos++;
-            }
-        } else if (kDown & KEY_DLEFT) {
-            if (g_rename_input_pos > 0) {
-                g_rename_input_pos--;
-            }
-        }
+        // Handle renaming using dedicated keyboard window
+        handle_rename_input();
+        return;
     } else {
         // Regular manager input
         if (kDown & KEY_DUP) {
@@ -328,4 +312,265 @@ int get_show_item_from_touch(void)
         return item_idx;
     }
     return -1;
+}
+
+// ============================================================================
+// RENAME WINDOW - TOP SCREEN
+// ============================================================================
+
+void render_rename_window_top(void)
+{
+    C2D_TargetClear(g_topScreen.target, CLR_BG_PRIMARY);
+    C2D_SceneBegin(g_topScreen.target);
+    
+    // Header
+    C2D_DrawRectSolid(0, 0, 0.5f, SCREEN_WIDTH_TOP, 50, C2D_Color32(0x0F, 0x0F, 0x3F, 0xFF));
+    C2D_DrawRectangle(0, 0, 0.5f, SCREEN_WIDTH_TOP, 50, CLR_BORDER, CLR_BORDER, CLR_BORDER, CLR_BORDER);
+    draw_debug_text(&g_topScreen, "Rinomina show", 15.0f, 10.0f, 0.60f, CLR_BORDER_CYAN);
+    
+    // Input display
+    C2D_DrawRectSolid(0, 50, 0.5f, SCREEN_WIDTH_TOP, SCREEN_HEIGHT_TOP - 50, CLR_BG_PRIMARY);
+    
+    // Draw input field border
+    draw_3d_border(10, 70, SCREEN_WIDTH_TOP - 20, 40, CLR_BORDER_BRIGHT, CLR_SHADOW_BLACK, 1);
+    C2D_DrawRectSolid(12, 72, 0.51f, SCREEN_WIDTH_TOP - 24, 36, CLR_BG_SECONDARY);
+    
+    // Show current input text
+    g_new_name[g_rename_input_pos] = '\0';
+    draw_debug_text(&g_topScreen, "Nome:", 15.0f, 85.0f, 0.50f, CLR_TEXT_SECONDARY);
+    draw_debug_text(&g_topScreen, g_new_name, 15.0f, 100.0f, 0.60f, CLR_BORDER_YELLOW);
+    draw_debug_text(&g_topScreen, "_", 15.0f + g_rename_input_pos * 10.0f, 100.0f, 0.60f, CLR_BORDER_CYAN);
+    
+    // Instructions
+    draw_debug_text(&g_topScreen, "A: Conferm  B: Annulla  D-Pad: Modifica", 10.0f, 170.0f, 0.35f, CLR_TEXT_SECONDARY);
+}
+
+// ============================================================================
+// RENAME WINDOW - BOTTOM SCREEN (KEYBOARD)
+// ============================================================================
+
+void render_rename_window_bot(void)
+{
+    C2D_TargetClear(g_botScreen.target, CLR_BG_PRIMARY);
+    C2D_SceneBegin(g_botScreen.target);
+    C2D_DrawRectSolid(0.0f, 0.0f, 0.5f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, CLR_BG_PRIMARY);
+    
+    // Header
+    draw_panel_header(0.0f, 0.0f, SCREEN_WIDTH_BOT, 30.0f, "Tastiera", CLR_BORDER_CYAN);
+    
+    // Virtual keyboard
+    float kb_y = 35.0f;
+    float key_width = (SCREEN_WIDTH_BOT - 20) / 10.0f;
+    
+    // Row 1: QWERTYUIOP
+    const char *row1 = "QWERTYUIOP";
+    for (int i = 0; i < 10; i++) {
+        char key_char[2] = {row1[i], '\0'};
+        float key_x = 10.0f + i * key_width;
+        draw_key_3d(key_x, kb_y, key_width - 2, 16, CLR_BG_SECONDARY);
+        draw_debug_text(&g_botScreen, key_char, key_x + 5, kb_y + 1, 0.35f, CLR_TEXT_PRIMARY);
+    }
+    
+    // Row 2: ASDFGHJKL
+    const char *row2 = "ASDFGHJKL";
+    kb_y += 18.0f;
+    for (int i = 0; i < 9; i++) {
+        char key_char[2] = {row2[i], '\0'};
+        float key_x = 10.0f + (i + 0.5f) * key_width;
+        draw_key_3d(key_x, kb_y, key_width - 2, 16, CLR_BG_SECONDARY);
+        draw_debug_text(&g_botScreen, key_char, key_x + 5, kb_y + 1, 0.35f, CLR_TEXT_PRIMARY);
+    }
+    
+    // Row 3: ZXCVBNM + digits
+    const char *row3 = "ZXCVBNM0123456789";
+    kb_y += 18.0f;
+    for (int i = 0; i < 17; i++) {
+        if (i < 7) {
+            // ZXCVBNM
+            char key_char[2] = {row3[i], '\0'};
+            float key_x = 10.0f + (i + 1.5f) * (key_width - 2);
+            draw_key_3d(key_x, kb_y, key_width - 2, 16, CLR_BG_SECONDARY);
+            draw_debug_text(&g_botScreen, key_char, key_x + 5, kb_y + 1, 0.35f, CLR_TEXT_PRIMARY);
+        } else {
+            // Digits 0-9
+            char key_char[2] = {row3[i], '\0'};
+            float key_x = 10.0f + (i - 7) * (key_width - 2);
+            draw_key_3d(key_x, kb_y + 18, key_width - 2, 16, CLR_BG_SECONDARY);
+            draw_debug_text(&g_botScreen, key_char, key_x + 5, kb_y + 18 + 1, 0.35f, CLR_TEXT_PRIMARY);
+        }
+    }
+    
+    // Row 4: Action buttons
+    kb_y += 54.0f;
+    float btn_width = (SCREEN_WIDTH_BOT - 20) / 4.0f;
+    
+    // Backspace - Delete last char
+    draw_key_3d(10, kb_y, btn_width - 2, 16, CLR_BORDER_YELLOW);
+    draw_debug_text(&g_botScreen, "<-", 15, kb_y + 1, 0.35f, CLR_TEXT_PRIMARY);
+    
+    // Space
+    draw_key_3d(10 + btn_width, kb_y, btn_width - 2, 16, CLR_BG_SECONDARY);
+    draw_debug_text(&g_botScreen, "SPC", 10 + btn_width + 8, kb_y + 1, 0.30f, CLR_TEXT_PRIMARY);
+    
+    // OK - Save rename
+    draw_key_3d(10 + btn_width * 2, kb_y, btn_width - 2, 16, CLR_BORDER_GREEN);
+    draw_debug_text(&g_botScreen, "OK", 10 + btn_width * 2 + 12, kb_y + 1, 0.35f, CLR_TEXT_PRIMARY);
+    
+    // Cancel - Abort rename
+    draw_key_3d(10 + btn_width * 3, kb_y, btn_width - 2, 16, CLR_BORDER_ORANGE);
+    draw_debug_text(&g_botScreen, "ESC", 10 + btn_width * 3 + 8, kb_y + 1, 0.30f, CLR_TEXT_PRIMARY);
+}
+
+void handle_rename_input(void)
+{
+    u32 kDown = hidKeysDown();
+    int touch_edge = g_isTouched && !g_wasTouched;
+    
+    if (!g_renaming) return;
+    
+    // A key to confirm
+    if (kDown & KEY_A) {
+        if (g_rename_input_pos > 0) {
+            g_new_name[g_rename_input_pos] = '\0';
+            rename_show_file(g_available_shows[g_selected_show], g_new_name);
+            g_renaming = 0;
+            g_rename_input_pos = 0;
+        }
+        return;
+    }
+    
+    // B key or Y to cancel
+    if ((kDown & KEY_B) || (kDown & KEY_Y)) {
+        g_renaming = 0;
+        g_rename_input_pos = 0;
+        return;
+    }
+    
+    // Touch support for keyboard
+    if (touch_edge) {
+        handle_rename_touch(g_touchPos);
+        return;
+    }
+    
+    // D-Pad modife input (simpler approach - just type characters)
+    if (kDown & KEY_DRIGHT) {
+        if (g_rename_input_pos < 60) {
+            g_new_name[g_rename_input_pos] = 'A';
+            g_rename_input_pos++;
+        }
+        return;
+    }
+    
+    if (kDown & KEY_DLEFT) {
+        if (g_rename_input_pos > 0) {
+            g_rename_input_pos--;
+        }
+        return;
+    }
+}
+
+void handle_rename_touch(touchPosition touch)
+{
+    float kb_y = 35.0f;
+    float key_width = (SCREEN_WIDTH_BOT - 20) / 10.0f;
+    
+    // Check rows for letter keys
+    // Row 1: QWERTYUIOP
+    float row_y = kb_y;
+    if (touch.py >= row_y && touch.py < row_y + 18) {
+        for (int i = 0; i < 10; i++) {
+            float key_x = 10.0f + i * key_width;
+            if (touch.px >= key_x && touch.px < key_x + key_width) {
+                if (g_rename_input_pos < 60) {
+                    g_new_name[g_rename_input_pos++] = "QWERTYUIOP"[i];
+                }
+                return;
+            }
+        }
+    }
+    
+    // Row 2: ASDFGHJKL
+    row_y = kb_y + 18.0f;
+    if (touch.py >= row_y && touch.py < row_y + 18) {
+        for (int i = 0; i < 9; i++) {
+            float key_x = 10.0f + (i + 0.5f) * key_width;
+            if (touch.px >= key_x && touch.px < key_x + key_width) {
+                if (g_rename_input_pos < 60) {
+                    g_new_name[g_rename_input_pos++] = "ASDFGHJKL"[i];
+                }
+                return;
+            }
+        }
+    }
+    
+    // Row 3a: ZXCVBNM
+    row_y = kb_y + 36.0f;
+    if (touch.py >= row_y && touch.py < row_y + 18) {
+        for (int i = 0; i < 7; i++) {
+            float key_x = 10.0f + (i + 1.5f) * (key_width - 2);
+            if (touch.px >= key_x && touch.px < key_x + key_width) {
+                if (g_rename_input_pos < 60) {
+                    g_new_name[g_rename_input_pos++] = "ZXCVBNM"[i];
+                }
+                return;
+            }
+        }
+    }
+    
+    // Row 3b: Digits 0-9
+    row_y = kb_y + 54.0f;
+    if (touch.py >= row_y && touch.py < row_y + 18) {
+        for (int i = 0; i < 10; i++) {
+            float key_x = 10.0f + i * (key_width - 2);
+            if (touch.px >= key_x && touch.px < key_x + key_width) {
+                if (g_rename_input_pos < 60) {
+                    g_new_name[g_rename_input_pos++] = '0' + i;
+                }
+                return;
+            }
+        }
+    }
+    
+    // Row 4: Action buttons
+    row_y = kb_y + 72.0f;
+    float btn_width = (SCREEN_WIDTH_BOT - 20) / 4.0f;
+    
+    if (touch.py >= row_y && touch.py < row_y + 18) {
+        float key_x = 10.0f;
+        
+        // Backspace
+        if (touch.px >= key_x && touch.px < key_x + btn_width) {
+            if (g_rename_input_pos > 0) g_rename_input_pos--;
+            return;
+        }
+        
+        // Space
+        key_x += btn_width;
+        if (touch.px >= key_x && touch.px < key_x + btn_width) {
+            if (g_rename_input_pos < 60) {
+                g_new_name[g_rename_input_pos++] = ' ';
+            }
+            return;
+        }
+        
+        // OK
+        key_x += btn_width;
+        if (touch.px >= key_x && touch.px < key_x + btn_width) {
+            if (g_rename_input_pos > 0) {
+                g_new_name[g_rename_input_pos] = '\0';
+                rename_show_file(g_available_shows[g_selected_show], g_new_name);
+                g_renaming = 0;
+                g_rename_input_pos = 0;
+            }
+            return;
+        }
+        
+        // Cancel
+        key_x += btn_width;
+        if (touch.px >= key_x && touch.px < key_x + btn_width) {
+            g_renaming = 0;
+            g_rename_input_pos = 0;
+            return;
+        }
+    }
 }

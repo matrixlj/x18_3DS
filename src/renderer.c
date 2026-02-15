@@ -61,6 +61,9 @@ void render_top_screen(void)
         
         // Rest of top screen empty
         C2D_DrawRectSolid(0, 50, 0.5f, SCREEN_WIDTH_TOP, SCREEN_HEIGHT_TOP - 50, CLR_BG_DARK);
+    } else if (g_renaming) {
+        // Rename window
+        render_rename_window_top();
     } else {
         // ===== TITLE BAR =====
         C2D_DrawRectSolid(0, 0, 0.5f, SCREEN_WIDTH_TOP, 35, C2D_Color32(0x0F, 0x0F, 0x3F, 0xFF));
@@ -149,6 +152,11 @@ void render_bot_screen(void)
     
     if (g_creating_new_show) {
         render_keyboard();
+        return;
+    }
+    
+    if (g_renaming) {
+        render_rename_window_bot();
         return;
     }
     
