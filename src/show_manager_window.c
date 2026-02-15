@@ -27,6 +27,34 @@ void render_show_manager(void)
     C2D_SceneBegin(g_botScreen.target);
     C2D_DrawRectSolid(0.0f, 0.0f, 0.5f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, CLR_BG_PRIMARY);
     
+    // ===== RENAME MODAL (If active, render ONLY this) =====
+    if (g_renaming) {
+        // Semi-transparent overlay
+        C2D_DrawRectSolid(0.0f, 0.0f, 0.10f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, C2D_Color32(0x00, 0x00, 0x00, 0x80));
+        
+        // Central modal panel
+        float modal_w = 260.0f;
+        float modal_h = 100.0f;
+        float modal_x = (SCREEN_WIDTH_BOT - modal_w) / 2.0f;
+        float modal_y = (SCREEN_HEIGHT_BOT - modal_h) / 2.0f;
+        
+        C2D_DrawRectSolid(modal_x, modal_y, 0.20f, modal_w, modal_h, CLR_BG_PRIMARY);
+        draw_3d_border(modal_x, modal_y, modal_w, modal_h, CLR_BORDER_BRIGHT, CLR_SHADOW_BLACK, 2);
+        
+        // Title
+        draw_debug_text(&g_botScreen, "Rename Show", modal_x + 10.0f, modal_y + 8.0f, 0.60f, CLR_BORDER_CYAN);
+        
+        // Input text
+        g_new_name[g_rename_input_pos] = '\0';
+        draw_debug_text(&g_botScreen, g_new_name, modal_x + 10.0f, modal_y + 32.0f, 0.50f, CLR_BORDER_YELLOW);
+        draw_debug_text(&g_botScreen, "_", modal_x + 10.0f + g_rename_input_pos * 7.0f, modal_y + 32.0f, 0.50f, CLR_BORDER_CYAN);
+        
+        // Instructions
+        draw_debug_text(&g_botScreen, "A: Save  B: Cancel  D-Pad: Edit", modal_x + 10.0f, modal_y + 60.0f, 0.35f, CLR_TEXT_SECONDARY);
+        
+        return;  // Don't render the rest when renaming
+    }
+    
     // ===== HEADER (full width) =====
     draw_panel_header(0.0f, 0.0f, SCREEN_WIDTH_BOT, 32.0f, "Show Manager", CLR_BORDER_CYAN);
     
@@ -57,16 +85,16 @@ void render_show_manager(void)
             text_color = clrModified;
         }
         
-        // Renaming mode
+        // Renaming mode - show in list (should not reach here since modal takes over)
         if (g_renaming && i == g_selected_show) {
-            draw_debug_text(&g_botScreen, g_new_name, list_x + 8, item_y + 1, 0.30f, CLR_BORDER_CYAN);
-            draw_debug_text(&g_botScreen, "_", list_x + 8 + g_rename_input_pos * 6, item_y + 1, 0.30f, CLR_BORDER_CYAN);
+            draw_debug_text(&g_botScreen, g_new_name, list_x + 8, item_y + 1, 0.50f, CLR_BORDER_CYAN);
+            draw_debug_text(&g_botScreen, "_", list_x + 8 + g_rename_input_pos * 7, item_y + 1, 0.50f, CLR_BORDER_CYAN);
         } else {
             // Show name (truncate if too long)
             char display_name[32];
             strncpy(display_name, g_available_shows[i], 28);
             display_name[28] = '\0';
-            draw_debug_text(&g_botScreen, display_name, list_x + 8, item_y + 1, 0.30f, text_color);
+            draw_debug_text(&g_botScreen, display_name, list_x + 8, item_y + 1, 0.50f, text_color);
         }
     }
     
