@@ -26,8 +26,8 @@ int g_options_selected_checkbox = 0;  // 0=fader, 1=eq
 #define CHECKBOX_X 30.0f
 #define LABEL_WIDTH 50.0f
 
-#define CHECKBOX1_Y 60.0f
-#define CHECKBOX2_Y 120.0f
+#define CHECKBOX1_Y 110.0f
+#define CHECKBOX2_Y 160.0f
 
 // ============================================================================
 // COLOR PALETTE
@@ -156,12 +156,18 @@ void render_options_window(void)
     // Draw title header panel at top
     draw_panel_header(0.0f, 0.0f, SCREEN_WIDTH_BOT, 45.0f, "Selezione invio OSC", CLR_BORDER_CYAN);
     
-    // Draw subtitle label
-    draw_debug_text(&g_botScreen, "Abilita trasmissione OSC:", 30.0f, 55.0f, 0.40f, CLR_TEXT_SECONDARY);
+    // Draw title text manually (larger, more visible)
+    draw_debug_text(&g_botScreen, "Selezione invio OSC", 20.0f, 10.0f, 0.50f, CLR_TEXT_PRIMARY);
+    
+    // Draw subtitle label (larger font)
+    draw_debug_text(&g_botScreen, "Abilita trasmissione OSC:", 30.0f, 65.0f, 0.50f, CLR_TEXT_SECONDARY);
     
     // Draw checkbox items with 3D styling (centered on screen)
     draw_checkbox_item(CHECKBOX_X, CHECKBOX1_Y, "FADER", g_options.send_fader, (g_options_selected_checkbox == 0));
     draw_checkbox_item(CHECKBOX_X, CHECKBOX2_Y, "EQUALIZER", g_options.send_eq, (g_options_selected_checkbox == 1));
+    
+    // Draw info message at bottom
+    draw_debug_text(&g_botScreen, "I mute dei canali verranno sempre inviati", 15.0f, SCREEN_HEIGHT_BOT - 35, 0.30f, CLR_TEXT_SECONDARY);
     
     // Draw usage instructions at bottom
     draw_debug_text(&g_botScreen, "UP/DOWN: Select  |  A: Toggle  |  B: Exit", 15.0f, SCREEN_HEIGHT_BOT - 20, 0.35f, CLR_TEXT_SECONDARY);
