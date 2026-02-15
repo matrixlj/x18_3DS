@@ -105,7 +105,7 @@ void render_net_config_window(void)
     draw_debug_text(&g_topScreen, status_text, 20, port_y + 40, 0.50f, status_color);
     
     // Instructions
-    draw_debug_text(&g_topScreen, "D-Pad: Navigate  A: Press  B: Cancel", 20, port_y + 60, 0.40f, CLR_TEXT_SECONDARY);
+    draw_debug_text(&g_topScreen, "D-Pad: Navigate  A: Press  B: Cancel", 20, port_y + 60, 0.50f, CLR_TEXT_SECONDARY);
     
     // BOTTOM SCREEN ==========================================================
     C2D_TargetClear(g_botScreen.target, CLR_BG_PRIMARY);
@@ -138,7 +138,7 @@ void render_net_config_window(void)
         int is_selected = (g_net_keyboard_selected == (i - 1));
         u32 key_color = is_selected ? CLR_BORDER_CYAN : CLR_BG_SECONDARY;
         draw_key_3d(keypad_x + (i - 1) * key_spacing, keypad_y, key_w, key_h, key_color);
-        draw_debug_text(&g_botScreen, digit_str, keypad_x + (i - 1) * key_spacing + 17, keypad_y + 12, 0.4f, CLR_TEXT_PRIMARY);
+        draw_debug_text(&g_botScreen, digit_str, keypad_x + (i - 1) * key_spacing + 17, keypad_y + 12, 0.50f, CLR_TEXT_PRIMARY);
     }
     
     // Row 2: digits 6-0
@@ -148,7 +148,7 @@ void render_net_config_window(void)
         int is_selected = (g_net_keyboard_selected == (i - 1));
         u32 key_color = is_selected ? CLR_BORDER_CYAN : CLR_BG_SECONDARY;
         draw_key_3d(keypad_x + (i - 6) * key_spacing, row2_y, key_w, key_h, key_color);
-        draw_debug_text(&g_botScreen, digit_str, keypad_x + (i - 6) * key_spacing + 17, row2_y + 12, 0.4f, CLR_TEXT_PRIMARY);
+        draw_debug_text(&g_botScreen, digit_str, keypad_x + (i - 6) * key_spacing + 17, row2_y + 12, 0.50f, CLR_TEXT_PRIMARY);
     }
     
     // Row 3: special buttons
@@ -157,26 +157,26 @@ void render_net_config_window(void)
     int is_dot_selected = (g_net_keyboard_selected == 10);
     u32 dot_color = is_dot_selected ? CLR_BORDER_ORANGE : CLR_BG_SECONDARY;
     draw_key_3d(keypad_x, row3_y, key_w, key_h, dot_color);
-    draw_debug_text(&g_botScreen, ".", keypad_x + 18, row3_y + 12, 0.4f, CLR_TEXT_PRIMARY);
+    draw_debug_text(&g_botScreen, ".", keypad_x + 18, row3_y + 12, 0.50f, CLR_TEXT_PRIMARY);
     
     int is_del_selected = (g_net_keyboard_selected == 11);
     u32 del_color = is_del_selected ? CLR_BORDER_ORANGE : CLR_BG_SECONDARY;
     draw_key_3d(keypad_x + key_spacing, row3_y, key_w, key_h, del_color);
-    draw_debug_text(&g_botScreen, "DEL", keypad_x + key_spacing + 9, row3_y + 12, 0.35f, CLR_TEXT_PRIMARY);
+    draw_debug_text(&g_botScreen, "DEL", keypad_x + key_spacing + 9, row3_y + 12, 0.50f, CLR_TEXT_PRIMARY);
     
     int is_tab_selected = (g_net_keyboard_selected == 12);
     u32 tab_color = is_tab_selected ? CLR_BORDER_ORANGE : CLR_BG_SECONDARY;
     draw_key_3d(keypad_x + key_spacing * 2, row3_y, key_w, key_h, tab_color);
-    draw_debug_text(&g_botScreen, "TAB", keypad_x + key_spacing * 2 + 10, row3_y + 12, 0.35f, CLR_TEXT_PRIMARY);
+    draw_debug_text(&g_botScreen, "TAB", keypad_x + key_spacing * 2 + 10, row3_y + 12, 0.50f, CLR_TEXT_PRIMARY);
     
     int is_save_selected = (g_net_keyboard_selected == 13);
     u32 save_color = is_save_selected ? CLR_BORDER_GREEN : CLR_BG_SECONDARY;
     draw_key_3d(keypad_x + key_spacing * 3, row3_y, key_w, key_h, save_color);
-    draw_debug_text(&g_botScreen, "SAVE", keypad_x + key_spacing * 3 + 9, row3_y + 12, 0.35f, CLR_TEXT_PRIMARY);
+    draw_debug_text(&g_botScreen, "SAVE", keypad_x + key_spacing * 3 + 9, row3_y + 12, 0.50f, CLR_TEXT_PRIMARY);
     
     // Instructions
     float instr_y = row3_y + key_spacing + 5.0f;
-    draw_debug_text(&g_botScreen, "D-Pad: Navigate  A: Press key  B: Cancel", 10, instr_y, 0.38f, CLR_TEXT_SECONDARY);
+    draw_debug_text(&g_botScreen, "D-Pad: Navigate  A: Press key  B: Cancel", 10, instr_y, 0.50f, CLR_TEXT_SECONDARY);
 }
 
 // Handle input for network configuration window

@@ -132,7 +132,7 @@ void render_eq_window(void)
     
     char header[64];
     snprintf(header, sizeof(header), "CH %02d", g_eq_editing_channel + 1);
-    draw_debug_text(&g_botScreen, header, 8.0f, 3.0f, 0.45f, clrYellow);
+    draw_debug_text(&g_botScreen, header, 8.0f, 3.0f, 0.50f, clrYellow);
     
     // Enable/Disable button - TOGGLE TYPE (green light when enabled, green dark when disabled)
     u32 toggle_color_main = eq->enabled ? clrGreen : C2D_Color32(0x00, 0x44, 0x00, 0xFF);
@@ -141,14 +141,14 @@ void render_eq_window(void)
     
     extern int draw_3d_button(float x, float y, float w, float h, u32 color_main, u32 color_light, u32 color_dark, int pressed);
     draw_3d_button(80, 3, 60, 12, toggle_color_main, toggle_color_light, toggle_color_dark, 0);
-    draw_debug_text(&g_botScreen, eq->enabled ? "ENABLED" : "DISABLED", 85.0f, 2.0f, 0.35f, clrWhite);
+    draw_debug_text(&g_botScreen, eq->enabled ? "ENABLED" : "DISABLED", 85.0f, 2.0f, 0.50f, clrWhite);
     
     // SAVE button - MOMENTARY TYPE (dark red normally, bright red when pressed)
     u32 save_color_main = g_eq_save_btn_pressed ? C2D_Color32(0xFF, 0x44, 0x44, 0xFF) : C2D_Color32(0x88, 0x00, 0x00, 0xFF);
     u32 save_color_light = g_eq_save_btn_pressed ? C2D_Color32(0xFF, 0x88, 0x88, 0xFF) : C2D_Color32(0xCC, 0x33, 0x33, 0xFF);
     u32 save_color_dark = g_eq_save_btn_pressed ? C2D_Color32(0xCC, 0x00, 0x00, 0xFF) : C2D_Color32(0x44, 0x00, 0x00, 0xFF);
     draw_3d_button(250, 3, 60, 12, save_color_main, save_color_light, save_color_dark, g_eq_save_btn_pressed);
-    draw_debug_text(&g_botScreen, "SAVE", 265.0f, 2.0f, 0.4f, clrWhite);
+    draw_debug_text(&g_botScreen, "SAVE", 265.0f, 2.0f, 0.50f, clrWhite);
     
     // ===== TYPE SELECTION BUTTONS (20-36px) - 6 types: LCut, Lshv, PEQ, VPEQ, HShv, HCut =====
     EQBand *selected_band = &eq->bands[g_eq_selected_band];
@@ -163,7 +163,7 @@ void render_eq_window(void)
         C2D_DrawRectangle(btn_x, 20, 0.5f, btn_w - 1, button_height - 1, clrBorder, clrBorder, clrBorder, clrBorder);
         
         u32 txt_color = (t == selected_band->type) ? C2D_Color32(0x00, 0x00, 0x00, 0xFF) : clrCyan;
-        draw_debug_text(&g_botScreen, type_names[t], btn_x + btn_w / 2.0f - 7.0f, 20.5f, 0.35f, txt_color);
+        draw_debug_text(&g_botScreen, type_names[t], btn_x + btn_w / 2.0f - 7.0f, 20.5f, 0.50f, txt_color);
     }
     
     // ===== EQ GRAPH AREA (38-220px) - Full width, maximized =====
@@ -331,7 +331,7 @@ void render_eq_window(void)
     
     char q_str[64];
     snprintf(q_str, sizeof(q_str), "Q: %.2f", selected_band->q_factor);
-    draw_debug_text(&g_botScreen, q_str, 15.0f, 222.0f, 0.4f, clrYellow);
+    draw_debug_text(&g_botScreen, q_str, 15.0f, 222.0f, 0.50f, clrYellow);
 }
 
 void handle_eq_input(u32 kDown, u32 kHeld)
@@ -455,7 +455,7 @@ void render_eq_info_panel(void)
     
     char header[64];
     snprintf(header, sizeof(header), "EQ Parameters - Channel %02d", g_eq_editing_channel + 1);
-    draw_debug_text(&g_topScreen, header, 10.0f, 2.0f, 0.40f, clrYellow);
+    draw_debug_text(&g_topScreen, header, 10.0f, 2.0f, 0.50f, clrYellow);
     
     // ===== TABLE SETUP =====
     int label_col_width = 25;  // Narrower label column
@@ -474,7 +474,7 @@ void render_eq_info_panel(void)
         C2D_DrawRectangle(0, row_y, 0.5f, SCREEN_WIDTH_TOP, row_height - 1, clrBorder, clrBorder, clrBorder, clrBorder);
         
         // Draw row label
-        draw_debug_text(&g_topScreen, row_labels[row], 5.0f, row_y + 18.0f, 0.40f, clrCyan);
+        draw_debug_text(&g_topScreen, row_labels[row], 5.0f, row_y + 18.0f, 0.50f, clrCyan);
         
         // Draw band values
         for (int b = 0; b < 5; b++) {
@@ -492,23 +492,23 @@ void render_eq_info_panel(void)
                 snprintf(value_str, sizeof(value_str), "%.0f", eq->bands[b].frequency);
                 float text_x = col_x + col_width / 2.0f - 15.0f;
                 draw_debug_text(&g_topScreen, value_str, text_x, row_y + 10.0f, 0.50f, band_colors[b]);
-                draw_debug_text(&g_topScreen, "Hz", text_x + 22.0f, row_y + 18.0f, 0.35f, band_colors[b]);
+                draw_debug_text(&g_topScreen, "Hz", text_x + 22.0f, row_y + 18.0f, 0.50f, band_colors[b]);
             } 
             else if (row == 1) {  // Gain
                 snprintf(value_str, sizeof(value_str), "%+.1f", eq->bands[b].gain);
                 float text_x = col_x + col_width / 2.0f - 15.0f;
                 draw_debug_text(&g_topScreen, value_str, text_x, row_y + 10.0f, 0.50f, band_colors[b]);
-                draw_debug_text(&g_topScreen, "dB", text_x + 22.0f, row_y + 18.0f, 0.35f, band_colors[b]);
+                draw_debug_text(&g_topScreen, "dB", text_x + 22.0f, row_y + 18.0f, 0.50f, band_colors[b]);
             }
             else if (row == 2) {  // Q
                 snprintf(value_str, sizeof(value_str), "%.2f", eq->bands[b].q_factor);
                 float text_x = col_x + col_width / 2.0f - 12.0f;
-                draw_debug_text(&g_topScreen, value_str, text_x, row_y + 18.0f, 0.48f, band_colors[b]);
+                draw_debug_text(&g_topScreen, value_str, text_x, row_y + 18.0f, 0.50f, band_colors[b]);
             }
             else if (row == 3) {  // Type
                 snprintf(value_str, sizeof(value_str), "%s", get_filter_type_name(eq->bands[b].type));
                 float text_x = col_x + col_width / 2.0f - 12.0f;
-                draw_debug_text(&g_topScreen, value_str, text_x, row_y + 18.0f, 0.45f, band_colors[b]);
+                draw_debug_text(&g_topScreen, value_str, text_x, row_y + 18.0f, 0.50f, band_colors[b]);
             }
         }
     }
@@ -518,7 +518,7 @@ void render_eq_info_panel(void)
     C2D_DrawRectSolid(0, footer_y, 0.5f, SCREEN_WIDTH_TOP, 40, C2D_Color32(0x0F, 0x0F, 0x3F, 0xFF));
     C2D_DrawRectangle(0, footer_y, 0.5f, SCREEN_WIDTH_TOP, 40, clrBorder, clrBorder, clrBorder, clrBorder);
     
-    draw_debug_text(&g_topScreen, "D-Pad: Select | L+D-Pad: Adjust | A: Toggle | B: Close", 5.0f, footer_y + 5.0f, 0.30f, clrBlue);
+    draw_debug_text(&g_topScreen, "D-Pad: Select | L+D-Pad: Adjust | A: Toggle | B: Close", 5.0f, footer_y + 5.0f, 0.50f, clrBlue);
     draw_debug_text(&g_topScreen, "Touch band circles on bottom screen to adjust Freq/Gain", 5.0f, footer_y + 18.0f, 0.30f, clrCyan);
 }
 

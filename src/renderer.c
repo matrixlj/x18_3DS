@@ -70,7 +70,7 @@ void render_top_screen(void)
         // Show step count
         char step_count_str[32];
         snprintf(step_count_str, sizeof(step_count_str), "Steps: %d", g_current_show.num_steps);
-        draw_debug_text(&g_topScreen, step_count_str, SCREEN_WIDTH_TOP - 150, 8.0f, 0.45f, CLR_WHITE);
+        draw_debug_text(&g_topScreen, step_count_str, SCREEN_WIDTH_TOP - 150, 8.0f, 0.50f, CLR_WHITE);
         
         // ===== STEPS LISTBOX =====
         // Listbox background
@@ -97,7 +97,7 @@ void render_top_screen(void)
             
             char step_text[80];
             snprintf(step_text, sizeof(step_text), "[%3d] %-25s", i + 1, g_current_show.steps[i].name);
-            draw_debug_text(&g_topScreen, step_text, 15.0f, list_y, 0.40f, step_color);
+            draw_debug_text(&g_topScreen, step_text, 15.0f, list_y, 0.50f, step_color);
             
             list_y += 20.0f;
         }
@@ -106,7 +106,7 @@ void render_top_screen(void)
         // Left box - Messages
         C2D_DrawRectSolid(0, 195, 0.5f, 200, 45, CLR_BG_MID);
         C2D_DrawRectangle(0, 195, 0.5f, 200, 45, CLR_BORDER, CLR_BORDER, CLR_BORDER, CLR_BORDER);
-        draw_debug_text(&g_topScreen, "Message:", 8.0f, 198.0f, 0.35f, CLR_CYAN);
+        draw_debug_text(&g_topScreen, "Message:", 8.0f, 198.0f, 0.50f, CLR_CYAN);
         
         if (g_save_status_timer > 0) {
             u32 msg_color = CLR_WHITE;
@@ -119,22 +119,22 @@ void render_top_screen(void)
             } else if (strstr(g_save_status, "OK")) {
                 msg_color = CLR_GREEN;
             }
-            draw_debug_text(&g_topScreen, g_save_status, 8.0f, 213.0f, 0.35f, msg_color);
+            draw_debug_text(&g_topScreen, g_save_status, 8.0f, 213.0f, 0.50f, msg_color);
             g_save_status_timer--;
         } else {
-            draw_debug_text(&g_topScreen, "Ready", 8.0f, 213.0f, 0.35f, CLR_WHITE);
+            draw_debug_text(&g_topScreen, "Ready", 8.0f, 213.0f, 0.50f, CLR_WHITE);
         }
         
         // Right box - Debug info
         C2D_DrawRectSolid(200, 195, 0.5f, 200, 45, CLR_BG_MID);
         C2D_DrawRectangle(200, 195, 0.5f, 200, 45, CLR_BORDER, CLR_BORDER, CLR_BORDER, CLR_BORDER);
-        draw_debug_text(&g_topScreen, "Info:", 208.0f, 198.0f, 0.35f, CLR_CYAN);
+        draw_debug_text(&g_topScreen, "Info:", 208.0f, 198.0f, 0.50f, CLR_CYAN);
         
         char info_str[80];
         snprintf(info_str, sizeof(info_str), "Step %d/%d | Vol: %d%%", 
                  g_selected_step + 1, g_current_show.num_steps,
                  (int)(g_faders[0].value * 100));
-        draw_debug_text(&g_topScreen, info_str, 208.0f, 213.0f, 0.35f, CLR_WHITE);
+        draw_debug_text(&g_topScreen, info_str, 208.0f, 213.0f, 0.50f, CLR_WHITE);
     }
 }
 
@@ -168,7 +168,7 @@ void render_bot_screen(void)
     char debug_msg[128];
     snprintf(debug_msg, sizeof(debug_msg), "RomFS:%d Grip:%d Fader:%d", 
              g_romfs_mounted, g_grip_loaded, g_fader_loaded);
-    draw_debug_text(&g_botScreen, debug_msg, 5, 5, 0.30f, C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF));
+    draw_debug_text(&g_botScreen, debug_msg, 5, 5, 0.50f, C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF));
     
     u32 clrMuteMain = C2D_Color32(0xDD, 0x33, 0x33, 0xFF);
     u32 clrMuteLight = C2D_Color32(0xFF, 0x66, 0x66, 0xFF);
@@ -196,12 +196,12 @@ void render_bot_screen(void)
         u32 eq_color_light = eq->enabled ? C2D_Color32(0x88, 0xFF, 0x88, 0xFF) : C2D_Color32(0x44, 0x66, 0x44, 0xFF);
         u32 eq_color_dark = eq->enabled ? clrEqDark : C2D_Color32(0x00, 0x44, 0x00, 0xFF);
         draw_3d_button(f->x + 1, 5, f->w - 2, 14, eq_color_main, eq_color_light, eq_color_dark, 0);
-        draw_debug_text(&g_botScreen, "Eq", f->x + 2, 7, 0.4f, clrText);
+        draw_debug_text(&g_botScreen, "Eq", f->x + 2, 7, 0.50f, clrText);
         
         // Channel number (below EQ button) - LARGER and CENTERED
         char label[4];
         snprintf(label, sizeof(label), "%d", f->id);
-        draw_debug_text(&g_botScreen, label, f->x + f->w / 2 - 4, 20, 0.4f, clrText);
+        draw_debug_text(&g_botScreen, label, f->x + f->w / 2 - 4, 20, 0.50f, clrText);
         
         // Volume in dB (calibrated scale) - LARGER and CENTERED
         char vol_str[8];
@@ -211,7 +211,7 @@ void render_bot_screen(void)
         } else {
             snprintf(vol_str, sizeof(vol_str), "%.0f", db);
         }
-        draw_debug_text(&g_botScreen, vol_str, f->x + f->w / 2 - 5, 30, 0.35f, clrText);
+        draw_debug_text(&g_botScreen, vol_str, f->x + f->w / 2 - 5, 30, 0.50f, clrText);
         
         // ===== FADER TRACK WITH SCALE MARKS =====
         float fader_top = 45;
@@ -282,7 +282,7 @@ void render_bot_screen(void)
         u32 mute_color_light = f->muted ? clrMuteLight : C2D_Color32(0x55, 0x00, 0x00, 0xFF);
         u32 mute_color_dark = f->muted ? clrMuteDark : C2D_Color32(0x44, 0x00, 0x00, 0xFF);
         draw_3d_button(f->x + 1, 210, f->w - 2, 17, mute_color_main, mute_color_light, mute_color_dark, f->muted);
-        draw_debug_text(&g_botScreen, "M", f->x + 4, 212, 0.4f, clrText);
+        draw_debug_text(&g_botScreen, "M", f->x + 4, 212, 0.50f, clrText);
     }
 }
 
