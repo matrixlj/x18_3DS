@@ -124,10 +124,10 @@ static void draw_checkbox_item(float x, float y, const char *label_text, int is_
     // Draw 3D checkbox border
     draw_3d_border(x, y, CHECKBOX_SIZE, CHECKBOX_SIZE, CLR_BORDER_BRIGHT, CLR_SHADOW_BLACK, 2);
     
-    // Draw status symbol (+ for enabled, - for disabled) - LARGER
+    // Draw status symbol (+ for enabled, - for disabled) - LARGER, CENTERED
     const char *symbol = is_enabled ? "+" : "-";
     u32 symbol_color = is_enabled ? CLR_BORDER_GREEN : CLR_X;
-    draw_debug_text(&g_botScreen, symbol, x + 4, y, 1.5f, symbol_color);
+    draw_debug_text(&g_botScreen, symbol, x + 6.0f, y + 4.0f, 1.5f, symbol_color);
     
     // Draw label to the right of checkbox
     draw_debug_text(&g_botScreen, label_text, x + CHECKBOX_SIZE + 10, y + 4, 0.55f, CLR_TEXT_PRIMARY);
