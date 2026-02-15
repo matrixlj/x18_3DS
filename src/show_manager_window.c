@@ -221,7 +221,7 @@ void handle_manager_input(void)
             } else if (check_button_touch(BTN_DUPLICATE)) {
                 if (g_selected_show >= 0 && g_selected_show < g_num_available_shows) {
                     char new_name[64];
-                    snprintf(new_name, sizeof(new_name), "%s_copy", g_available_shows[g_selected_show]);
+                    snprintf(new_name, sizeof(new_name), "%.57s_copy", g_available_shows[g_selected_show]);
                     duplicate_show_file(g_available_shows[g_selected_show], new_name);
                 }
             } else if (check_button_touch(BTN_RENAME)) {

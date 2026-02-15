@@ -989,7 +989,8 @@ void duplicate_show_file(const char *src, const char *dst)
     Show temp_show;
     if (!load_show_from_file(src, &temp_show)) return;
     
-    strcpy(temp_show.name, dst);
+    strncpy(temp_show.name, dst, sizeof(temp_show.name) - 1);
+    temp_show.name[sizeof(temp_show.name) - 1] = '\0';
     save_show_to_file(&temp_show);
     list_available_shows();
 }
@@ -1002,7 +1003,8 @@ void rename_show_file(const char *old_name, const char *new_name)
     if (!load_show_from_file(old_name, &temp_show)) return;
     
     delete_show_file(old_name);
-    strcpy(temp_show.name, new_name);
+    strncpy(temp_show.name, new_name, sizeof(temp_show.name) - 1);
+    temp_show.name[sizeof(temp_show.name) - 1] = '\0';
     save_show_to_file(&temp_show);
     list_available_shows();
 }
