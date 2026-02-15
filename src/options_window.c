@@ -146,6 +146,10 @@ void render_options_window(void)
 {
     if (!g_options_window_open) return;
     
+    // Clear and setup bottom screen
+    C2D_TargetClear(g_botScreen.target, CLR_BG_PRIMARY);
+    C2D_SceneBegin(g_botScreen.target);
+    
     // Fill entire bottom screen with background
     C2D_DrawRectSolid(0.0f, 0.0f, 0.01f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, CLR_BG_PRIMARY);
     
