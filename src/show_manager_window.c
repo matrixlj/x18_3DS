@@ -16,78 +16,62 @@ extern void apply_step_to_faders(int step_idx);
 
 void render_show_manager(void)
 {
-    u32 clrBg = C2D_Color32(0x20, 0x20, 0x20, 0xFF);
-    C2D_TargetClear(g_botScreen.target, clrBg);
     C2D_SceneBegin(g_botScreen.target);
+    C2D_DrawRectSolid(0.0f, 0.0f, 0.5f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, CLR_BG_PRIMARY);
     
-    u32 clrText = C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF);
-    u32 clrSelected = C2D_Color32(0xFF, 0xFF, 0x00, 0xFF);
-    u32 clrBorder = C2D_Color32(0x50, 0x50, 0x50, 0xFF);
-    u32 clrBtnBg = C2D_Color32(0x40, 0x40, 0x40, 0xFF);
+    // Header panel
+    draw_panel_header(0.0f, 0.0f, SCREEN_WIDTH_BOT, 35.0f, "Show Manager", CLR_BORDER_CYAN);
+    draw_debug_text(&g_botScreen, "Show Manager", 5, 10, 0.45f, CLR_TEXT_PRIMARY);
     
-    // Title
-    draw_debug_text(&g_botScreen, "Show Manager", 5, 5, 0.4f, clrText);
+    // List of shows (starts at y=40)
+    float list_y = 40.0f;
+    float list_item_h = 20.0f;
+    u32 clrModified = CLR_BORDER_YELLOW;
     
-    // List of shows (starts at y=25)
-    float list_y = 25.0f;
-    u32 clrNotSaved = C2D_Color32(0xFF, 0x00, 0x00, 0xFF);  // Red for unsaved
-    
-    for (int i = 0; i < g_num_available_shows && i < 10; i++) {
-        u32 color = (i == g_selected_show) ? clrSelected : clrText;
+    for (int i = 0; i < g_num_available_shows && i < 9; i++) {
+        draw_list_item_bg(0.0f, list_y, SCREEN_WIDTH_BOT, list_item_h, (i == g_selected_show));
         
-        // Check if this show is the current one and not saved
+        u32 text_color = (i == g_selected_show) ? CLR_TEXT_PRIMARY : CLR_TEXT_SECONDARY;
+        
+        // Check if modified
         if (g_show_modified && strcmp(g_available_shows[i], g_current_show.name) == 0) {
-            color = clrNotSaved;
+            text_color = clrModified;
         }
         
-        // Show item background
-        if (i == g_selected_show) {
-            C2D_DrawRectSolid(0, list_y, 0.5f, SCREEN_WIDTH_BOT, 18, C2D_Color32(0x30, 0x30, 0x60, 0xFF));
-        }
-        
-        // Check if renaming this item
+        // Renaming mode
         if (g_renaming && i == g_selected_show) {
-            draw_debug_text(&g_botScreen, g_new_name, 10, list_y + 2, 0.35f, clrSelected);
-            draw_debug_text(&g_botScreen, "_", 10 + g_rename_input_pos * 8, list_y + 2, 0.35f, clrSelected);
+            draw_debug_text(&g_botScreen, g_new_name, 15, list_y + 2, 0.35f, CLR_BORDER_CYAN);
+            draw_debug_text(&g_botScreen, "_", 15 + g_rename_input_pos * 8, list_y + 2, 0.35f, CLR_BORDER_CYAN);
         } else {
-            draw_debug_text(&g_botScreen, g_available_shows[i], 10, list_y + 2, 0.35f, color);
+            draw_debug_text(&g_botScreen, g_available_shows[i], 15, list_y + 2, 0.35f, text_color);
         }
         
-        list_y += 18.0f;
+        list_y += list_item_h;
     }
     
-    // Bottom buttons (7 buttons on 2 rows: 4 on first row, 3 on second)
-    float btn_row1_y = 210.0f;
-    float btn_row2_y = 225.0f;
-    float btn_width_4 = SCREEN_WIDTH_BOT / 4.0f;   // Width for 4 buttons
-    float btn_width_3 = SCREEN_WIDTH_BOT / 3.0f;   // Width for 3 buttons
+    // Bottom buttons
+    float btn_row1_y = 205.0f;
+    float btn_row2_y = 221.0f;
+    float btn_width_4 = SCREEN_WIDTH_BOT / 4.0f;
+    float btn_width_3 = SCREEN_WIDTH_BOT / 3.0f;
+    float btn_h = 14.0f;
     
     const char *btn_labels_row1[] = {"LOAD", "DEL", "DUP", "REN"};
     const char *btn_labels_row2[] = {"OPT", "NET", "EXIT"};
-    u32 clrExit = C2D_Color32(0xFF, 0x00, 0x00, 0xFF);  // Red for exit button
-    u32 clrNet = C2D_Color32(0x00, 0xFF, 0xFF, 0xFF);   // Cyan for net button
-    u32 clrOpt = C2D_Color32(0xFF, 0xAA, 0x00, 0xFF);   // Orange for opt button
     
     // Row 1: 4 buttons (LOAD, DEL, DUP, REN)
     for (int i = 0; i < 4; i++) {
         float btn_x = i * btn_width_4;
-        C2D_DrawRectSolid(btn_x, btn_row1_y, 0.5f, btn_width_4 - 1, 14, clrBtnBg);
-        C2D_DrawRectangle(btn_x, btn_row1_y, 0.5f, btn_width_4 - 1, 14, clrBorder, clrBorder, clrBorder, clrBorder);
-        draw_debug_text(&g_botScreen, btn_labels_row1[i], btn_x + 4, btn_row1_y - 1, 0.4f, clrText);
+        draw_button_3d(btn_x, btn_row1_y, btn_width_4 - 1, btn_h, CLR_BG_SECONDARY);
+        draw_debug_text(&g_botScreen, btn_labels_row1[i], btn_x + 12, btn_row1_y - 2, 0.35f, CLR_TEXT_PRIMARY);
     }
     
     // Row 2: 3 buttons (OPT, NET, EXIT)
+    u32 colors_row2[] = {CLR_BORDER_ORANGE, CLR_BORDER_CYAN, CLR_BORDER_YELLOW};
     for (int i = 0; i < 3; i++) {
         float btn_x = i * btn_width_3;
-        C2D_DrawRectSolid(btn_x, btn_row2_y, 0.5f, btn_width_3 - 1, 14, clrBtnBg);
-        C2D_DrawRectangle(btn_x, btn_row2_y, 0.5f, btn_width_3 - 1, 14, clrBorder, clrBorder, clrBorder, clrBorder);
-        
-        u32 btn_color = clrText;
-        if (i == 0) btn_color = clrOpt;   // Orange for OPT
-        else if (i == 1) btn_color = clrNet;   // Cyan for NET
-        else if (i == 2) btn_color = clrExit;  // Red for EXIT
-        
-        draw_debug_text(&g_botScreen, btn_labels_row2[i], btn_x + 6, btn_row2_y - 1, 0.4f, btn_color);
+        draw_button_3d(btn_x, btn_row2_y, btn_width_3 - 1, btn_h, colors_row2[i]);
+        draw_debug_text(&g_botScreen, btn_labels_row2[i], btn_x + 16, btn_row2_y - 2, 0.35f, CLR_TEXT_PRIMARY);
     }
 }
 

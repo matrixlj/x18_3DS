@@ -117,26 +117,23 @@ void save_options(void)
 static void draw_checkbox_item(float x, float y, const char *label_text, int is_enabled, int is_selected)
 {
     // Draw checkbox background
-    u32 checkbox_color = is_enabled ? CLR_ENABLED : CLR_DISABLED;
+    u32 checkbox_color = is_enabled ? CLR_BORDER_GREEN : CLR_BG_SECONDARY;
     C2D_DrawRectSolid(x, y, 0.61f, CHECKBOX_SIZE, CHECKBOX_SIZE, checkbox_color);
     
-    // Draw checkbox border (white frame)
-    C2D_DrawRectSolid(x, y, 0.62f, CHECKBOX_SIZE, 2, CLR_BORDER);                        // Top
-    C2D_DrawRectSolid(x, y + CHECKBOX_SIZE - 2, 0.62f, CHECKBOX_SIZE, 2, CLR_BORDER);   // Bottom
-    C2D_DrawRectSolid(x, y, 0.62f, 2, CHECKBOX_SIZE, CLR_BORDER);                        // Left
-    C2D_DrawRectSolid(x + CHECKBOX_SIZE - 2, y, 0.62f, 2, CHECKBOX_SIZE, CLR_BORDER);   // Right
+    // Draw 3D checkbox border
+    draw_3d_border(x, y, CHECKBOX_SIZE, CHECKBOX_SIZE, CLR_BORDER_BRIGHT, CLR_SHADOW_BLACK, 2);
     
     // Draw status symbol (✓ or ✗)
     const char *symbol = is_enabled ? "✓" : "✗";
-    u32 symbol_color = is_enabled ? CLR_CHECKMARK : CLR_X;
+    u32 symbol_color = is_enabled ? CLR_BORDER_GREEN : CLR_BORDER_YELLOW;
     draw_debug_text(&g_botScreen, symbol, x + 4, y + 2, 0.8f, symbol_color);
     
     // Draw label to the right of checkbox
-    draw_debug_text(&g_botScreen, label_text, x + CHECKBOX_SIZE + 10, y + 4, 0.55f, CLR_LABEL);
+    draw_debug_text(&g_botScreen, label_text, x + CHECKBOX_SIZE + 10, y + 4, 0.55f, CLR_TEXT_PRIMARY);
     
-    // Draw selection indicator (underline)
+    // Draw selection indicator (underline with bright color)
     if (is_selected) {
-        C2D_DrawRectSolid(x, y + CHECKBOX_SIZE + 3, 0.62f, CHECKBOX_SIZE + 100, 2, CLR_TITLE);
+        C2D_DrawRectSolid(x, y + CHECKBOX_SIZE + 3, 0.62f, CHECKBOX_SIZE + 100, 2, CLR_BORDER_CYAN);
     }
 }
 
@@ -148,26 +145,21 @@ void render_options_window(void)
 {
     if (!g_options_window_open) return;
     
-    // Draw window background
-    C2D_DrawRectSolid(WIN_X, WIN_Y, 0.50f, WIN_WIDTH, WIN_HEIGHT, CLR_BG_WINDOW);
+    // Draw window background and borders with 3D effect
+    C2D_DrawRectSolid(WIN_X, WIN_Y, 0.50f, WIN_WIDTH, WIN_HEIGHT, CLR_BG_SECONDARY);
+    draw_3d_border(WIN_X, WIN_Y, WIN_WIDTH, WIN_HEIGHT, CLR_BORDER_BRIGHT, CLR_SHADOW_BLACK, 2);
     
-    // Draw window border
-    C2D_DrawRectSolid(WIN_X, WIN_Y, 0.52f, WIN_WIDTH, 2, CLR_BORDER);                      // Top
-    C2D_DrawRectSolid(WIN_X, WIN_Y + WIN_HEIGHT - 2, 0.52f, WIN_WIDTH, 2, CLR_BORDER);    // Bottom
-    C2D_DrawRectSolid(WIN_X, WIN_Y, 0.52f, 2, WIN_HEIGHT, CLR_BORDER);                    // Left
-    C2D_DrawRectSolid(WIN_X + WIN_WIDTH - 2, WIN_Y, 0.52f, 2, WIN_HEIGHT, CLR_BORDER);    // Right
+    // Draw title with header style
+    draw_panel_header(WIN_X + 2, WIN_Y + 2, WIN_WIDTH - 4, 35.0f, "Options", CLR_BORDER_CYAN);
+    draw_debug_text(&g_botScreen, "OSC Options", WIN_X + 20, WIN_Y + 12, 0.55f, CLR_TEXT_PRIMARY);
     
-    // Draw title
-    draw_debug_text(&g_botScreen, "OSC Options", WIN_X + 20, WIN_Y + 12, 0.55f, CLR_TITLE);
-    
-    // Draw checkbox items
+    // Draw checkbox items with 3D styling
     draw_checkbox_item(CHECKBOX_X, CHECKBOX1_Y, "FADER", g_options.send_fader, (g_options_selected_checkbox == 0));
     draw_checkbox_item(CHECKBOX_X, CHECKBOX2_Y, "EQUALIZER", g_options.send_eq, (g_options_selected_checkbox == 1));
     
-    // Draw usage instructions at bottom
-    u32 clrInstructions = C2D_Color32(0xAA, 0xAA, 0xAA, 0xFF);  // Gray
-    draw_debug_text(&g_botScreen, "UP/DOWN:Select", WIN_X + 10, WIN_Y + 155, 0.35f, clrInstructions);
-    draw_debug_text(&g_botScreen, "A:Toggle B:Exit", WIN_X + 10, WIN_Y + 165, 0.35f, clrInstructions);
+    // Draw usage instructions at bottom with styled text
+    draw_debug_text(&g_botScreen, "UP/DOWN: Select", WIN_X + 10, WIN_Y + 155, 0.35f, CLR_TEXT_SECONDARY);
+    draw_debug_text(&g_botScreen, "A: Toggle  B: Exit", WIN_X + 10, WIN_Y + 165, 0.35f, CLR_TEXT_SECONDARY);
 }
 
 // ============================================================================

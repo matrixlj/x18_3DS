@@ -3,26 +3,19 @@
 
 void render_keyboard(void)
 {
-    u32 clrBg = C2D_Color32(0x20, 0x20, 0x20, 0xFF);
-    u32 clrBorder = C2D_Color32(0x50, 0x50, 0x50, 0xFF);
-    u32 clrWhite = C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF);
-    u32 clrRed = C2D_Color32(0xFF, 0x00, 0x00, 0xFF);
-    u32 clrGreen = C2D_Color32(0x00, 0xFF, 0x00, 0xFF);
-    u32 clrYellow = C2D_Color32(0xFF, 0xFF, 0x00, 0xFF);
-    u32 clrCyan = C2D_Color32(0x00, 0xFF, 0xFF, 0xFF);
-    
-    C2D_TargetClear(g_botScreen.target, clrBg);
     C2D_SceneBegin(g_botScreen.target);
+    C2D_DrawRectSolid(0.0f, 0.0f, 0.5f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, CLR_BG_PRIMARY);
     
-    // Title
-    draw_debug_text(&g_botScreen, "Virtual Keyboard", 10, 5, 0.4f, clrCyan);
+    // Header
+    draw_panel_header(0.0f, 0.0f, SCREEN_WIDTH_BOT, 35.0f, "Keyboard", CLR_BORDER_CYAN);
+    draw_debug_text(&g_botScreen, "Virtual Keyboard", 10, 10, 0.4f, CLR_TEXT_PRIMARY);
     
-    // Input display
-    C2D_DrawRectangle(10, 20, 0.5f, SCREEN_WIDTH_BOT - 20, 30, clrBorder, clrBorder, clrBorder, clrBorder);
-    draw_debug_text(&g_botScreen, g_new_show_name, 15, 25, 0.4f, clrYellow);
+    // Input display with 3D field effect
+    draw_input_field(10, 45, SCREEN_WIDTH_BOT - 20, 25);
+    draw_debug_text(&g_botScreen, g_new_show_name, 15, 50, 0.4f, CLR_BORDER_YELLOW);
     
     // Virtual keyboard rows
-    float kb_y = 55.0f;
+    float kb_y = 75.0f;
     float key_width = (SCREEN_WIDTH_BOT - 20) / 10.0f;
     
     // Row 1: QWERTYUIOP
@@ -30,49 +23,49 @@ void render_keyboard(void)
     for (int i = 0; i < 10; i++) {
         char key_char[2] = {row1[i], '\0'};
         float key_x = 10.0f + i * key_width;
-        C2D_DrawRectangle(key_x, kb_y, 0.5f, key_width - 2, 20, clrBorder, clrBorder, clrBorder, clrBorder);
-        draw_debug_text(&g_botScreen, key_char, key_x + 4, kb_y + 2, 0.35f, clrWhite);
+        draw_key_3d(key_x, kb_y, key_width - 2, 18, CLR_BG_SECONDARY);
+        draw_debug_text(&g_botScreen, key_char, key_x + 6, kb_y + 2, 0.32f, CLR_TEXT_PRIMARY);
     }
     
     // Row 2: ASDFGHJKL
     const char *row2 = "ASDFGHJKL";
-    kb_y += 22.0f;
+    kb_y += 20.0f;
     for (int i = 0; i < 9; i++) {
         char key_char[2] = {row2[i], '\0'};
         float key_x = 10.0f + (i + 0.5f) * key_width;
-        C2D_DrawRectangle(key_x, kb_y, 0.5f, key_width - 2, 20, clrBorder, clrBorder, clrBorder, clrBorder);
-        draw_debug_text(&g_botScreen, key_char, key_x + 4, kb_y + 2, 0.35f, clrWhite);
+        draw_key_3d(key_x, kb_y, key_width - 2, 18, CLR_BG_SECONDARY);
+        draw_debug_text(&g_botScreen, key_char, key_x + 6, kb_y + 2, 0.32f, CLR_TEXT_PRIMARY);
     }
     
     // Row 3: ZXCVBNM
     const char *row3 = "ZXCVBNM";
-    kb_y += 22.0f;
+    kb_y += 20.0f;
     for (int i = 0; i < 7; i++) {
         char key_char[2] = {row3[i], '\0'};
         float key_x = 10.0f + (i + 1.5f) * key_width;
-        C2D_DrawRectangle(key_x, kb_y, 0.5f, key_width - 2, 20, clrBorder, clrBorder, clrBorder, clrBorder);
-        draw_debug_text(&g_botScreen, key_char, key_x + 4, kb_y + 2, 0.35f, clrWhite);
+        draw_key_3d(key_x, kb_y, key_width - 2, 18, CLR_BG_SECONDARY);
+        draw_debug_text(&g_botScreen, key_char, key_x + 6, kb_y + 2, 0.32f, CLR_TEXT_PRIMARY);
     }
     
     // Row 4: Action buttons
-    kb_y += 22.0f;
+    kb_y += 20.0f;
     float btn_width = (SCREEN_WIDTH_BOT - 20) / 4.0f;
     
     // Backspace
-    C2D_DrawRectangle(10, kb_y, 0.5f, btn_width - 2, 20, clrBorder, clrBorder, clrBorder, clrBorder);
-    draw_debug_text(&g_botScreen, "<--", 15, kb_y + 2, 0.3f, clrRed);
+    draw_key_3d(10, kb_y, btn_width - 2, 18, CLR_BORDER_YELLOW);
+    draw_debug_text(&g_botScreen, "<--", 20, kb_y + 2, 0.28f, CLR_TEXT_PRIMARY);
     
     // Space
-    C2D_DrawRectangle(10 + btn_width, kb_y, 0.5f, btn_width - 2, 20, clrBorder, clrBorder, clrBorder, clrBorder);
-    draw_debug_text(&g_botScreen, "SPC", 10 + btn_width + 5, kb_y + 2, 0.3f, clrWhite);
+    draw_key_3d(10 + btn_width, kb_y, btn_width - 2, 18, CLR_BG_SECONDARY);
+    draw_debug_text(&g_botScreen, "SPC", 10 + btn_width + 12, kb_y + 2, 0.28f, CLR_TEXT_PRIMARY);
     
     // OK
-    C2D_DrawRectangle(10 + btn_width * 2, kb_y, 0.5f, btn_width - 2, 20, clrBorder, clrBorder, clrBorder, clrBorder);
-    draw_debug_text(&g_botScreen, "OK", 10 + btn_width * 2 + 12, kb_y + 2, 0.35f, clrGreen);
+    draw_key_3d(10 + btn_width * 2, kb_y, btn_width - 2, 18, CLR_BORDER_GREEN);
+    draw_debug_text(&g_botScreen, "OK", 10 + btn_width * 2 + 15, kb_y + 2, 0.32f, CLR_TEXT_PRIMARY);
     
     // Cancel
-    C2D_DrawRectangle(10 + btn_width * 3, kb_y, 0.5f, btn_width - 2, 20, clrBorder, clrBorder, clrBorder, clrBorder);
-    draw_debug_text(&g_botScreen, "Esc", 10 + btn_width * 3 + 10, kb_y + 2, 0.3f, clrRed);
+    draw_key_3d(10 + btn_width * 3, kb_y, btn_width - 2, 18, CLR_BORDER_ORANGE);
+    draw_debug_text(&g_botScreen, "ESC", 10 + btn_width * 3 + 13, kb_y + 2, 0.28f, CLR_TEXT_PRIMARY);
 }
 
 void handle_keyboard_input(char c)
