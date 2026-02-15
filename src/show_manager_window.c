@@ -6,6 +6,10 @@
 // Color for DELETE/EXIT buttons  
 #define CLR_X C2D_Color32(0xFF, 0x00, 0x00, 0xFF)
 
+// Text colors for contrast
+#define CLR_TEXT_DARK C2D_Color32(0x00, 0x00, 0x00, 0xFF)     // Black for bright buttons
+#define CLR_TEXT_LIGHT C2D_Color32(0xFF, 0xFF, 0xFF, 0xFF)    // White for dark buttons
+
 // Forward declarations from main.c (external functions)
 extern int check_button_touch(int button_idx);
 extern int get_show_item_from_touch(void);
@@ -92,7 +96,29 @@ void render_show_manager(void)
         if (i == 4) continue;  // Skip spacer
         
         draw_button_3d(btn_x + 2, buttons[i].y, btn_w - 4, btn_h, buttons[i].color);
-        draw_debug_text(&g_botScreen, buttons[i].label, btn_x + 5, buttons[i].y, 0.28f, CLR_TEXT_PRIMARY);
+        
+        // Determine text color for contrast
+        u32 text_color = CLR_TEXT_LIGHT;  // Default: white for dark buttons
+        if (buttons[i].color == CLR_BORDER_GREEN || 
+            buttons[i].color == CLR_BORDER_YELLOW ||
+            buttons[i].color == CLR_BORDER_ORANGE ||
+            buttons[i].color == CLR_BORDER_CYAN) {
+            text_color = CLR_TEXT_DARK;  // Black for bright buttons
+        }
+        
+        // Center text horizontally and vertically
+        float button_center_x = btn_x + 2 + (btn_w - 4) / 2.0f;
+        float button_center_y = buttons[i].y + btn_h / 2.0f;
+        
+        // Estimate text width (approximately 7.5px per character at 0.28f scale)
+        int label_len = strlen(buttons[i].label);
+        float approx_text_width = label_len * 7.5f;
+        
+        // Position text centered in button
+        float text_x = button_center_x - approx_text_width / 2.0f;
+        float text_y = button_center_y - 4.0f;  // Adjust Y for vertical centering
+        
+        draw_debug_text(&g_botScreen, buttons[i].label, text_x, text_y, 0.28f, text_color);
     }
     
     // Info panel on the right at the bottom
