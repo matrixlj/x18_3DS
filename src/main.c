@@ -852,10 +852,16 @@ void list_available_shows(void)
     struct dirent *entry;
     while ((entry = readdir(dir)) && g_num_available_shows < MAX_SHOWS) {
         if (entry->d_type == DT_REG && strstr(entry->d_name, ".x18s")) {
-            // Remove .x18s extension
-            strcpy(g_available_shows[g_num_available_shows], entry->d_name);
-            char *dot = strstr(g_available_shows[g_num_available_shows], ".x18s");
+            // Remove .x18s extension - use strncpy to prevent buffer overflow
+            char temp_name[128];
+            strncpy(temp_name, entry->d_name, sizeof(temp_name) - 1);
+            temp_name[sizeof(temp_name) - 1] = '\0';
+            char *dot = strstr(temp_name, ".x18s");
             if (dot) *dot = '\0';
+            
+            // Copy to g_available_shows with size limit
+            strncpy(g_available_shows[g_num_available_shows], temp_name, sizeof(g_available_shows[0]) - 1);
+            g_available_shows[g_num_available_shows][sizeof(g_available_shows[0]) - 1] = '\0';
             g_num_available_shows++;
         }
     }
@@ -986,12 +992,19 @@ void duplicate_show_file(const char *src, const char *dst)
 {
     if (!src || !dst) return;
     
-    Show temp_show;
-    if (!load_show_from_file(src, &temp_show)) return;
+    // Allocate on HEAP to avoid stack overflow (~300KB struct)
+    Show *temp_show = (Show *)malloc(sizeof(Show));
+    if (!temp_show) return;
     
-    strncpy(temp_show.name, dst, sizeof(temp_show.name) - 1);
-    temp_show.name[sizeof(temp_show.name) - 1] = '\0';
-    save_show_to_file(&temp_show);
+    if (!load_show_from_file(src, temp_show)) {
+        free(temp_show);
+        return;
+    }
+    
+    strncpy(temp_show->name, dst, sizeof(temp_show->name) - 1);
+    temp_show->name[sizeof(temp_show->name) - 1] = '\0';
+    save_show_to_file(temp_show);
+    free(temp_show);
     list_available_shows();
 }
 
@@ -999,13 +1012,20 @@ void rename_show_file(const char *old_name, const char *new_name)
 {
     if (!old_name || !new_name) return;
     
-    Show temp_show;
-    if (!load_show_from_file(old_name, &temp_show)) return;
+    // Allocate on HEAP to avoid stack overflow (~300KB struct)
+    Show *temp_show = (Show *)malloc(sizeof(Show));
+    if (!temp_show) return;
+    
+    if (!load_show_from_file(old_name, temp_show)) {
+        free(temp_show);
+        return;
+    }
     
     delete_show_file(old_name);
-    strncpy(temp_show.name, new_name, sizeof(temp_show.name) - 1);
-    temp_show.name[sizeof(temp_show.name) - 1] = '\0';
-    save_show_to_file(&temp_show);
+    strncpy(temp_show->name, new_name, sizeof(temp_show->name) - 1);
+    temp_show->name[sizeof(temp_show->name) - 1] = '\0';
+    save_show_to_file(temp_show);
+    free(temp_show);
     list_available_shows();
 }
 
