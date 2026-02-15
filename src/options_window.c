@@ -118,7 +118,7 @@ static void draw_checkbox_item(float x, float y, const char *label_text, int is_
 {
     // Draw checkbox background
     u32 checkbox_color = is_enabled ? CLR_BORDER_GREEN : CLR_X;
-    C2D_DrawRectSolid(x, y, 0.61f, CHECKBOX_SIZE, CHECKBOX_SIZE, checkbox_color);
+    C2D_DrawRectSolid(x, y, 0.29f, CHECKBOX_SIZE, CHECKBOX_SIZE, checkbox_color);
     
     // Draw 3D checkbox border
     draw_3d_border(x, y, CHECKBOX_SIZE, CHECKBOX_SIZE, CLR_BORDER_BRIGHT, CLR_SHADOW_BLACK, 2);
@@ -133,7 +133,7 @@ static void draw_checkbox_item(float x, float y, const char *label_text, int is_
     
     // Draw selection indicator (underline with bright color)
     if (is_selected) {
-        C2D_DrawRectSolid(x, y + CHECKBOX_SIZE + 3, 0.62f, CHECKBOX_SIZE + 100, 2, CLR_BORDER_CYAN);
+        C2D_DrawRectSolid(x, y + CHECKBOX_SIZE + 3, 0.28f, CHECKBOX_SIZE + 100, 2, CLR_BORDER_CYAN);
     }
 }
 
@@ -146,7 +146,7 @@ void render_options_window(void)
     if (!g_options_window_open) return;
     
     // Draw window background and borders with 3D effect
-    C2D_DrawRectSolid(WIN_X, WIN_Y, 0.50f, WIN_WIDTH, WIN_HEIGHT, CLR_BG_SECONDARY);
+    C2D_DrawRectSolid(WIN_X, WIN_Y, 0.30f, WIN_WIDTH, WIN_HEIGHT, CLR_BG_SECONDARY);
     draw_3d_border(WIN_X, WIN_Y, WIN_WIDTH, WIN_HEIGHT, CLR_BORDER_BRIGHT, CLR_SHADOW_BLACK, 2);
     
     // Draw title with header style
