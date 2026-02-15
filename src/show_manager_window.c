@@ -118,7 +118,7 @@ void render_show_manager(void)
         float text_x = button_center_x - approx_text_width / 2.0f;
         float text_y = button_center_y - 4.0f;  // Adjust Y for vertical centering
         
-        draw_debug_text(&g_botScreen, buttons[i].label, text_x, text_y, 0.28f, text_color);
+        draw_debug_text(&g_botScreen, buttons[i].label, text_x, text_y, 0.40f, text_color);
     }
     
     // Info panel on the right at the bottom
