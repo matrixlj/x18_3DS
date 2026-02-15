@@ -16,6 +16,7 @@ extern void apply_step_to_faders(int step_idx);
 
 void render_show_manager(void)
 {
+    C2D_TargetClear(g_botScreen.target, CLR_BG_PRIMARY);
     C2D_SceneBegin(g_botScreen.target);
     C2D_DrawRectSolid(0.0f, 0.0f, 0.5f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, CLR_BG_PRIMARY);
     

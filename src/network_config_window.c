@@ -108,6 +108,7 @@ void render_net_config_window(void)
     draw_debug_text(&g_topScreen, "D-Pad: Navigate  A: Press  B: Cancel", 20, port_y + 60, 0.40f, CLR_TEXT_SECONDARY);
     
     // BOTTOM SCREEN ==========================================================
+    C2D_TargetClear(g_botScreen.target, CLR_BG_PRIMARY);
     C2D_SceneBegin(g_botScreen.target);
     C2D_DrawRectSolid(0.0f, 0.0f, 0.5f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, CLR_BG_PRIMARY);
     
