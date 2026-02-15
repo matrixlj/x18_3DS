@@ -293,15 +293,15 @@ void render_frame(void)
     
     if (g_app_mode == APP_MODE_MIXER) {
         render_bot_screen();  // Always show mixer on bottom screen
+    } else if (g_options_window_open) {
+        // Options window is MODAL - render ONLY this, nothing else on bottom screen
+        render_options_window();
     } else {
+        // Normal show manager mode
         render_show_manager();
         // Render network config window if open
         if (g_net_config_open) {
             render_net_config_window();
-        }
-        // Render options window if open (on bottom screen) - rendered AFTER so it appears on top
-        if (g_options_window_open) {
-            render_options_window();
         }
     }
     
