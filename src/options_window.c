@@ -16,17 +16,18 @@ int g_options_selected_checkbox = 0;  // 0=fader, 1=eq
 // WINDOW LAYOUT CONSTANTS
 // ============================================================================
 
-#define WIN_WIDTH 240.0f
-#define WIN_HEIGHT 180.0f
-#define WIN_X ((SCREEN_WIDTH_BOT - WIN_WIDTH) / 2.0f)
-#define WIN_Y ((SCREEN_HEIGHT_BOT - WIN_HEIGHT) / 2.0f)
+// Options window is now FULL SCREEN on bottom screen
+#define WIN_WIDTH SCREEN_WIDTH_BOT   // Full width: 320px
+#define WIN_HEIGHT SCREEN_HEIGHT_BOT // Full height: 240px
+#define WIN_X 0.0f                    // Top-left corner
+#define WIN_Y 0.0f                    // Top-left corner
 
 #define CHECKBOX_SIZE 22.0f
-#define CHECKBOX_X (WIN_X + 20.0f)
+#define CHECKBOX_X 30.0f
 #define LABEL_WIDTH 50.0f
 
-#define CHECKBOX1_Y (WIN_Y + 50.0f)
-#define CHECKBOX2_Y (WIN_Y + 105.0f)
+#define CHECKBOX1_Y 60.0f
+#define CHECKBOX2_Y 120.0f
 
 // ============================================================================
 // COLOR PALETTE
@@ -145,21 +146,18 @@ void render_options_window(void)
 {
     if (!g_options_window_open) return;
     
-    // Draw window background and borders with 3D effect (MINIMUM depth - always in front)
-    C2D_DrawRectSolid(WIN_X, WIN_Y, 0.01f, WIN_WIDTH, WIN_HEIGHT, CLR_BG_SECONDARY);
-    draw_3d_border(WIN_X, WIN_Y, WIN_WIDTH, WIN_HEIGHT, CLR_BORDER_BRIGHT, CLR_SHADOW_BLACK, 2);
+    // Fill entire bottom screen with background
+    C2D_DrawRectSolid(0.0f, 0.0f, 0.01f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, CLR_BG_PRIMARY);
     
-    // Draw title with header style
-    draw_panel_header(WIN_X + 2, WIN_Y + 2, WIN_WIDTH - 4, 35.0f, "Options", CLR_BORDER_CYAN);
-    draw_debug_text(&g_botScreen, "OSC Options", WIN_X + 20, WIN_Y + 12, 0.55f, CLR_TEXT_PRIMARY);
+    // Draw title header panel at top
+    draw_panel_header(0.0f, 0.0f, SCREEN_WIDTH_BOT, 45.0f, "OSC Options", CLR_BORDER_CYAN);
     
-    // Draw checkbox items with 3D styling
+    // Draw checkbox items with 3D styling (centered on screen)
     draw_checkbox_item(CHECKBOX_X, CHECKBOX1_Y, "FADER", g_options.send_fader, (g_options_selected_checkbox == 0));
     draw_checkbox_item(CHECKBOX_X, CHECKBOX2_Y, "EQUALIZER", g_options.send_eq, (g_options_selected_checkbox == 1));
     
-    // Draw usage instructions at bottom with styled text
-    draw_debug_text(&g_botScreen, "UP/DOWN: Select", WIN_X + 10, WIN_Y + 155, 0.35f, CLR_TEXT_SECONDARY);
-    draw_debug_text(&g_botScreen, "A: Toggle  B: Exit", WIN_X + 10, WIN_Y + 165, 0.35f, CLR_TEXT_SECONDARY);
+    // Draw usage instructions at bottom
+    draw_debug_text(&g_botScreen, "UP/DOWN: Select  |  A: Toggle  |  B: Exit", 15.0f, SCREEN_HEIGHT_BOT - 20, 0.35f, CLR_TEXT_SECONDARY);
 }
 
 // ============================================================================
