@@ -156,8 +156,8 @@ void render_options_window(void)
     // Draw title header panel at top
     draw_panel_header(0.0f, 0.0f, SCREEN_WIDTH_BOT, 45.0f, "Selezione invio OSC", CLR_BORDER_CYAN);
     
-    // Draw title text manually (larger, more visible)
-    draw_debug_text(&g_botScreen, "Selezione invio OSC", 20.0f, 10.0f, 0.50f, CLR_TEXT_PRIMARY);
+    // Draw title text manually (larger, more visible, cyan color)
+    draw_debug_text(&g_botScreen, "Selezione invio OSC", 20.0f, 10.0f, 0.80f, CLR_TITLE);
     
     // Draw subtitle label (larger font)
     draw_debug_text(&g_botScreen, "Abilita trasmissione OSC:", 30.0f, 65.0f, 0.50f, CLR_TEXT_SECONDARY);
@@ -167,10 +167,10 @@ void render_options_window(void)
     draw_checkbox_item(CHECKBOX_X, CHECKBOX2_Y, "EQUALIZER", g_options.send_eq, (g_options_selected_checkbox == 1));
     
     // Draw info message at bottom
-    draw_debug_text(&g_botScreen, "I mute dei canali verranno sempre inviati", 15.0f, SCREEN_HEIGHT_BOT - 35, 0.30f, CLR_TEXT_SECONDARY);
+    draw_debug_text(&g_botScreen, "I mute dei canali verranno sempre inviati", 15.0f, SCREEN_HEIGHT_BOT - 35, 0.50f, CLR_TEXT_SECONDARY);
     
     // Draw usage instructions at bottom
-    draw_debug_text(&g_botScreen, "UP/DOWN: Select  |  A: Toggle  |  B: Exit", 15.0f, SCREEN_HEIGHT_BOT - 20, 0.35f, CLR_TEXT_SECONDARY);
+    draw_debug_text(&g_botScreen, "UP/DOWN: Select  |  A: Toggle  |  B: Exit", 15.0f, SCREEN_HEIGHT_BOT - 20, 0.50f, CLR_TEXT_SECONDARY);
 }
 
 // ============================================================================
