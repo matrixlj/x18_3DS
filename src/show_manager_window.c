@@ -45,8 +45,8 @@ void render_show_manager(void)
     for (int i = 0; i < g_num_available_shows && i < 12; i++) {
         float item_y = list_y + 2.0f + (i * list_item_h);
         
-        // Highlight selected item (high depth - render behind Options window)
-        if (i == g_selected_show) {
+        // Highlight selected item (keep depth high when Options is closed, or skip if open)
+        if (i == g_selected_show && !g_options_window_open) {
             C2D_DrawRectSolid(list_x + 1, item_y, 0.60f, list_w - 2, list_item_h - 1, C2D_Color32(0x00, 0x44, 0x88, 0xFF));
         }
         
