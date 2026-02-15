@@ -117,7 +117,7 @@ void save_options(void)
 static void draw_checkbox_item(float x, float y, const char *label_text, int is_enabled, int is_selected)
 {
     // Draw checkbox background
-    u32 checkbox_color = is_enabled ? CLR_BORDER_GREEN : CLR_BG_SECONDARY;
+    u32 checkbox_color = is_enabled ? CLR_BORDER_GREEN : CLR_X;
     C2D_DrawRectSolid(x, y, 0.61f, CHECKBOX_SIZE, CHECKBOX_SIZE, checkbox_color);
     
     // Draw 3D checkbox border
@@ -125,7 +125,7 @@ static void draw_checkbox_item(float x, float y, const char *label_text, int is_
     
     // Draw status symbol (✓ or ✗)
     const char *symbol = is_enabled ? "✓" : "✗";
-    u32 symbol_color = is_enabled ? CLR_BORDER_GREEN : CLR_BORDER_YELLOW;
+    u32 symbol_color = is_enabled ? CLR_BORDER_GREEN : CLR_X;
     draw_debug_text(&g_botScreen, symbol, x + 4, y + 2, 0.8f, symbol_color);
     
     // Draw label to the right of checkbox

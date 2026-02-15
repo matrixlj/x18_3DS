@@ -3,6 +3,9 @@
 #include "network_config_window.h"
 #include "options_window.h"
 
+// Color for DELETE/EXIT buttons  
+#define CLR_X C2D_Color32(0xFF, 0x00, 0x00, 0xFF)
+
 // Forward declarations from main.c (external functions)
 extern int check_button_touch(int button_idx);
 extern int get_show_item_from_touch(void);
@@ -20,19 +23,30 @@ void render_show_manager(void)
     C2D_SceneBegin(g_botScreen.target);
     C2D_DrawRectSolid(0.0f, 0.0f, 0.5f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, CLR_BG_PRIMARY);
     
-    // Header panel
-    draw_panel_header(0.0f, 0.0f, SCREEN_WIDTH_BOT, 35.0f, "Show Manager", CLR_BORDER_CYAN);
-    draw_debug_text(&g_botScreen, "Show Manager", 5, 10, 0.45f, CLR_TEXT_PRIMARY);
+    // ===== HEADER (full width) =====
+    draw_panel_header(0.0f, 0.0f, SCREEN_WIDTH_BOT, 32.0f, "Show Manager", CLR_BORDER_CYAN);
     
-    // List of shows (starts at y=40)
+    // ===== LEFT COLUMN: Show List (0-205px wide) =====
+    float list_x = 5.0f;
     float list_y = 40.0f;
-    float list_item_h = 20.0f;
-    u32 clrModified = CLR_BORDER_YELLOW;
+    float list_w = 205.0f;
+    float list_item_h = 16.0f;
     
-    for (int i = 0; i < g_num_available_shows && i < 9; i++) {
-        draw_list_item_bg(0.0f, list_y, SCREEN_WIDTH_BOT, list_item_h, (i == g_selected_show));
+    // List background panel with border
+    C2D_DrawRectSolid(list_x, list_y, 0.50f, list_w, 195.0f, CLR_BG_SECONDARY);
+    draw_3d_border(list_x, list_y, list_w, 195.0f, CLR_BORDER_BRIGHT, CLR_SHADOW_BLACK, 1);
+    
+    // Draw show items (compact list)
+    u32 clrModified = CLR_BORDER_YELLOW;
+    for (int i = 0; i < g_num_available_shows && i < 12; i++) {
+        float item_y = list_y + 2.0f + (i * list_item_h);
         
-        u32 text_color = (i == g_selected_show) ? CLR_TEXT_PRIMARY : CLR_TEXT_SECONDARY;
+        // Highlight selected item
+        if (i == g_selected_show) {
+            C2D_DrawRectSolid(list_x + 1, item_y, 0.51f, list_w - 2, list_item_h - 1, C2D_Color32(0x00, 0x44, 0x88, 0xFF));
+        }
+        
+        u32 text_color = (i == g_selected_show) ? CLR_BORDER_CYAN : CLR_TEXT_SECONDARY;
         
         // Check if modified
         if (g_show_modified && strcmp(g_available_shows[i], g_current_show.name) == 0) {
@@ -41,38 +55,67 @@ void render_show_manager(void)
         
         // Renaming mode
         if (g_renaming && i == g_selected_show) {
-            draw_debug_text(&g_botScreen, g_new_name, 15, list_y + 2, 0.35f, CLR_BORDER_CYAN);
-            draw_debug_text(&g_botScreen, "_", 15 + g_rename_input_pos * 8, list_y + 2, 0.35f, CLR_BORDER_CYAN);
+            draw_debug_text(&g_botScreen, g_new_name, list_x + 8, item_y + 1, 0.30f, CLR_BORDER_CYAN);
+            draw_debug_text(&g_botScreen, "_", list_x + 8 + g_rename_input_pos * 6, item_y + 1, 0.30f, CLR_BORDER_CYAN);
         } else {
-            draw_debug_text(&g_botScreen, g_available_shows[i], 15, list_y + 2, 0.35f, text_color);
+            // Show name (truncate if too long)
+            char display_name[32];
+            strncpy(display_name, g_available_shows[i], 28);
+            display_name[28] = '\0';
+            draw_debug_text(&g_botScreen, display_name, list_x + 8, item_y + 1, 0.30f, text_color);
         }
+    }
+    
+    // ===== RIGHT COLUMN: Buttons (210-320px wide) =====
+    float btn_x = 210.0f;
+    float btn_w = 107.0f;
+    float btn_h = 16.0f;
+    float btn_y = 40.0f;
+    
+    // Button definitions: label, color, starts at y position
+    struct {
+        const char *label;
+        u32 color;
+        float y;
+    } buttons[] = {
+        {"LOAD", CLR_BORDER_GREEN, btn_y},
+        {"DELETE", CLR_X, btn_y + 18},
+        {"DUPLICATE", CLR_BORDER_ORANGE, btn_y + 36},
+        {"RENAME", CLR_BORDER_YELLOW, btn_y + 54},
+        {"", C2D_Color32(0x33, 0x33, 0x33, 0xFF), btn_y + 72},  // Spacer
+        {"OPTIONS", CLR_BORDER_ORANGE, btn_y + 90},
+        {"NETWORK", CLR_BORDER_CYAN, btn_y + 108},
+        {"EXIT", CLR_X, btn_y + 126},
+    };
+    
+    for (int i = 0; i < 8; i++) {
+        if (i == 4) continue;  // Skip spacer
         
-        list_y += list_item_h;
+        draw_button_3d(btn_x + 2, buttons[i].y, btn_w - 4, btn_h, buttons[i].color);
+        draw_debug_text(&g_botScreen, buttons[i].label, btn_x + 5, buttons[i].y, 0.28f, CLR_TEXT_PRIMARY);
     }
     
-    // Bottom buttons
-    float btn_row1_y = 205.0f;
-    float btn_row2_y = 221.0f;
-    float btn_width_4 = SCREEN_WIDTH_BOT / 4.0f;
-    float btn_width_3 = SCREEN_WIDTH_BOT / 3.0f;
-    float btn_h = 14.0f;
+    // Info panel on the right at the bottom
+    float info_y = btn_y + 145;
+    draw_3d_border(btn_x + 2, info_y, btn_w - 4, 85, CLR_BORDER_BRIGHT, CLR_SHADOW_BLACK, 1);
+    C2D_DrawRectSolid(btn_x + 3, info_y + 1, 0.51f, btn_w - 6, 83, CLR_BG_SECONDARY);
     
-    const char *btn_labels_row1[] = {"LOAD", "DEL", "DUP", "REN"};
-    const char *btn_labels_row2[] = {"OPT", "NET", "EXIT"};
+    draw_debug_text(&g_botScreen, "Info:", btn_x + 8, info_y + 5, 0.32f, CLR_BORDER_CYAN);
     
-    // Row 1: 4 buttons (LOAD, DEL, DUP, REN)
-    for (int i = 0; i < 4; i++) {
-        float btn_x = i * btn_width_4;
-        draw_button_3d(btn_x, btn_row1_y, btn_width_4 - 1, btn_h, CLR_BG_SECONDARY);
-        draw_debug_text(&g_botScreen, btn_labels_row1[i], btn_x + 12, btn_row1_y - 2, 0.35f, CLR_TEXT_PRIMARY);
-    }
-    
-    // Row 2: 3 buttons (OPT, NET, EXIT)
-    u32 colors_row2[] = {CLR_BORDER_ORANGE, CLR_BORDER_CYAN, CLR_BORDER_YELLOW};
-    for (int i = 0; i < 3; i++) {
-        float btn_x = i * btn_width_3;
-        draw_button_3d(btn_x, btn_row2_y, btn_width_3 - 1, btn_h, colors_row2[i]);
-        draw_debug_text(&g_botScreen, btn_labels_row2[i], btn_x + 16, btn_row2_y - 2, 0.35f, CLR_TEXT_PRIMARY);
+    if (g_selected_show >= 0 && g_selected_show < g_num_available_shows) {
+        // Show name
+        char name_short[24];
+        strncpy(name_short, g_available_shows[g_selected_show], 20);
+        name_short[20] = '\0';
+        draw_debug_text(&g_botScreen, "Show:", btn_x + 8, info_y + 20, 0.28f, CLR_TEXT_SECONDARY);
+        draw_debug_text(&g_botScreen, name_short, btn_x + 8, info_y + 30, 0.25f, CLR_TEXT_PRIMARY);
+        
+        // Steps count (if loaded)
+        if (strcmp(g_available_shows[g_selected_show], g_current_show.name) == 0) {
+            char steps_str[16];
+            snprintf(steps_str, sizeof(steps_str), "Steps: %d", g_current_show.num_steps);
+            draw_debug_text(&g_botScreen, steps_str, btn_x + 8, info_y + 45, 0.25f, CLR_BORDER_YELLOW);
+        }
     }
 }
 
@@ -187,26 +230,27 @@ int check_button_touch(int button_idx)
 {
     if (!g_isTouched) return 0;
     
-    // Button layout (2 rows):
-    // Row 1 (y=210): LOAD(0), DEL(1), DUP(2), REN(3) - 4 buttons
-    // Row 2 (y=225): OPT(4), NET(5), EXIT(6) - 3 buttons
+    // Updated button layout: Vertical buttons on the right (210-320px)
+    // LOAD(0), DELETE(1), DUP(2), REN(3), OPT(4), NET(5), EXIT(6)
+    float btn_x = 210.0f;
+    float btn_w = 107.0f;
+    float btn_h = 16.0f;
+    float btn_y_start = 40.0f;
     
-    float btn_row1_y = 210.0f;
-    float btn_row2_y = 225.0f;
-    float btn_width_4 = SCREEN_WIDTH_BOT / 4.0f;
-    float btn_width_3 = SCREEN_WIDTH_BOT / 3.0f;
+    float btn_positions[] = {
+        btn_y_start + 0,      // LOAD (0)
+        btn_y_start + 18,     // DELETE (1)
+        btn_y_start + 36,     // DUP (2)
+        btn_y_start + 54,     // REN (3)
+        btn_y_start + 90,     // OPT (4)
+        btn_y_start + 108,    // NET (5)
+        btn_y_start + 126,    // EXIT (6)
+    };
     
-    if (button_idx >= 0 && button_idx < 4) {
-        // Row 1 buttons
-        float btn_x = button_idx * btn_width_4;
-        return (g_touchPos.px >= btn_x && g_touchPos.px < btn_x + btn_width_4 &&
-                g_touchPos.py >= btn_row1_y && g_touchPos.py < btn_row1_y + 14);
-    } else if (button_idx >= 4 && button_idx < 7) {
-        // Row 2 buttons (map indices 4,5,6 to positions 0,1,2)
-        int row2_idx = button_idx - 4;
-        float btn_x = row2_idx * btn_width_3;
-        return (g_touchPos.px >= btn_x && g_touchPos.px < btn_x + btn_width_3 &&
-                g_touchPos.py >= btn_row2_y && g_touchPos.py < btn_row2_y + 14);
+    if (button_idx >= 0 && button_idx <= 6) {
+        float btn_y = btn_positions[button_idx];
+        return (g_touchPos.px >= btn_x && g_touchPos.px < btn_x + btn_w &&
+                g_touchPos.py >= btn_y && g_touchPos.py < btn_y + btn_h);
     }
     
     return 0;
@@ -216,12 +260,18 @@ int get_show_item_from_touch(void)
 {
     if (!g_isTouched) return -1;
     
-    float list_y = 25.0f;
-    for (int i = 0; i < g_num_available_shows && i < 10; i++) {
-        if (g_touchPos.py >= list_y && g_touchPos.py < list_y + 18) {
-            return i;
-        }
-        list_y += 18.0f;
+    // Check if touch is in list area (0-205px wide, 40-235px tall)
+    if (g_touchPos.px < 5 || g_touchPos.px > 210 || g_touchPos.py < 40 || g_touchPos.py > 235) {
+        return -1;
+    }
+    
+    float list_y = 40.0f;
+    float list_item_h = 16.0f;
+    
+    int item_idx = (int)((g_touchPos.py - list_y) / list_item_h);
+    
+    if (item_idx >= 0 && item_idx < g_num_available_shows && item_idx < 12) {
+        return item_idx;
     }
     return -1;
 }
