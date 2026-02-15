@@ -124,17 +124,17 @@ static void draw_checkbox_item(float x, float y, const char *label_text, int is_
     // Draw 3D checkbox border
     draw_3d_border(x, y, CHECKBOX_SIZE, CHECKBOX_SIZE, CLR_BORDER_BRIGHT, CLR_SHADOW_BLACK, 2);
     
-    // Draw status symbol (+ for enabled, - for disabled)
+    // Draw status symbol (+ for enabled, - for disabled) - LARGER
     const char *symbol = is_enabled ? "+" : "-";
     u32 symbol_color = is_enabled ? CLR_BORDER_GREEN : CLR_X;
-    draw_debug_text(&g_botScreen, symbol, x + 6, y + 3, 0.8f, symbol_color);
+    draw_debug_text(&g_botScreen, symbol, x + 4, y, 1.5f, symbol_color);
     
     // Draw label to the right of checkbox
     draw_debug_text(&g_botScreen, label_text, x + CHECKBOX_SIZE + 10, y + 4, 0.55f, CLR_TEXT_PRIMARY);
     
-    // Draw selection indicator (underline with bright color - minimal depth)
+    // Draw selection indicator (bright underline - minimal depth)
     if (is_selected) {
-        C2D_DrawRectSolid(x, y + CHECKBOX_SIZE + 3, 0.00f, CHECKBOX_SIZE + 100, 2, CLR_BORDER_CYAN);
+        C2D_DrawRectSolid(x, y + CHECKBOX_SIZE + 5, 0.00f, CHECKBOX_SIZE + 150, 3, CLR_BORDER_CYAN);
     }
 }
 
@@ -154,7 +154,10 @@ void render_options_window(void)
     C2D_DrawRectSolid(0.0f, 0.0f, 0.01f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, CLR_BG_PRIMARY);
     
     // Draw title header panel at top
-    draw_panel_header(0.0f, 0.0f, SCREEN_WIDTH_BOT, 45.0f, "OSC Options", CLR_BORDER_CYAN);
+    draw_panel_header(0.0f, 0.0f, SCREEN_WIDTH_BOT, 45.0f, "Selezione invio OSC", CLR_BORDER_CYAN);
+    
+    // Draw subtitle label
+    draw_debug_text(&g_botScreen, "Abilita trasmissione OSC:", 30.0f, 55.0f, 0.40f, CLR_TEXT_SECONDARY);
     
     // Draw checkbox items with 3D styling (centered on screen)
     draw_checkbox_item(CHECKBOX_X, CHECKBOX1_Y, "FADER", g_options.send_fader, (g_options_selected_checkbox == 0));
