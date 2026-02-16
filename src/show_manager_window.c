@@ -311,10 +311,11 @@ void render_rename_window_top(void)
     g_new_name[g_rename_input_pos] = '\0';
     draw_debug_text(&g_topScreen, "Nome:", 15.0f, 95.0f, 0.50f, CLR_TEXT_SECONDARY);
     draw_debug_text(&g_topScreen, g_new_name, 15.0f, 110.0f, 0.50f, CLR_BORDER_YELLOW);
-    draw_debug_text(&g_topScreen, "_", 15.0f + g_rename_input_pos * 10.0f, 110.0f, 0.50f, CLR_BORDER_CYAN);
+    // Fixed cursor position: approximately 6.5 pixels per character at 0.50f font size
+    draw_debug_text(&g_topScreen, "_", 15.0f + g_rename_input_pos * 6.5f, 110.0f, 0.50f, CLR_BORDER_CYAN);
     
     // Instructions
-    draw_debug_text(&g_topScreen, "A: Conferm  B: Annulla  D-Pad: Modifica", 10.0f, 170.0f, 0.35f, CLR_TEXT_SECONDARY);
+    draw_debug_text(&g_topScreen, "A: Conferm  B: Annulla  D-Pad: Modifica", 10.0f, 170.0f, 0.50f, CLR_TEXT_SECONDARY);
 }
 
 // ============================================================================
@@ -339,62 +340,62 @@ void render_rename_window_bot(void)
     for (int i = 0; i < 10; i++) {
         char key_char[2] = {row1[i], '\0'};
         float key_x = 10.0f + i * key_width;
-        draw_key_3d(key_x, kb_y, key_width - 2, 16, CLR_BG_SECONDARY);
+        draw_key_3d(key_x, kb_y, key_width - 2, 20, CLR_BG_SECONDARY);
         // Center text horizontally and vertically
-        draw_debug_text(&g_botScreen, key_char, key_x + key_width/2 - 2, kb_y + 6, 0.35f, CLR_TEXT_PRIMARY);
+        draw_debug_text(&g_botScreen, key_char, key_x + key_width/2 - 2, kb_y + 7, 0.50f, CLR_TEXT_PRIMARY);
     }
     
     // Row 2: ASDFGHJKL
     const char *row2 = "ASDFGHJKL";
-    kb_y += 18.0f;
+    kb_y += 22.0f;
     for (int i = 0; i < 9; i++) {
         char key_char[2] = {row2[i], '\0'};
         float key_x = 10.0f + (i + 0.5f) * key_width;
-        draw_key_3d(key_x, kb_y, key_width - 2, 16, CLR_BG_SECONDARY);
+        draw_key_3d(key_x, kb_y, key_width - 2, 20, CLR_BG_SECONDARY);
         // Center text horizontally and vertically
-        draw_debug_text(&g_botScreen, key_char, key_x + key_width/2 - 2, kb_y + 6, 0.35f, CLR_TEXT_PRIMARY);
+        draw_debug_text(&g_botScreen, key_char, key_x + key_width/2 - 2, kb_y + 7, 0.50f, CLR_TEXT_PRIMARY);
     }
     
     // Row 3: ZXCVBNM + digits
     const char *row3 = "ZXCVBNM0123456789";
-    kb_y += 18.0f;
+    kb_y += 22.0f;
     for (int i = 0; i < 17; i++) {
         if (i < 7) {
             // ZXCVBNM
             char key_char[2] = {row3[i], '\0'};
             float key_x = 10.0f + (i + 1.5f) * (key_width - 2);
-            draw_key_3d(key_x, kb_y, key_width - 2, 16, CLR_BG_SECONDARY);
+            draw_key_3d(key_x, kb_y, key_width - 2, 20, CLR_BG_SECONDARY);
             // Center text horizontally and vertically
-            draw_debug_text(&g_botScreen, key_char, key_x + key_width/2 - 2, kb_y + 6, 0.35f, CLR_TEXT_PRIMARY);
+            draw_debug_text(&g_botScreen, key_char, key_x + key_width/2 - 2, kb_y + 7, 0.50f, CLR_TEXT_PRIMARY);
         } else {
             // Digits 0-9
             char key_char[2] = {row3[i], '\0'};
             float key_x = 10.0f + (i - 7) * (key_width - 2);
-            draw_key_3d(key_x, kb_y + 18, key_width - 2, 16, CLR_BG_SECONDARY);
+            draw_key_3d(key_x, kb_y + 22, key_width - 2, 20, CLR_BG_SECONDARY);
             // Center text horizontally and vertically
-            draw_debug_text(&g_botScreen, key_char, key_x + key_width/2 - 2, kb_y + 18 + 6, 0.35f, CLR_TEXT_PRIMARY);
+            draw_debug_text(&g_botScreen, key_char, key_x + key_width/2 - 2, kb_y + 22 + 7, 0.50f, CLR_TEXT_PRIMARY);
         }
     }
     
     // Row 4: Action buttons (moved lower)
-    kb_y += 80.0f;
+    kb_y += 84.0f;
     float btn_width = (SCREEN_WIDTH_BOT - 20) / 4.0f;
     
     // Backspace - Delete last char (YELLOW button, BLACK text for contrast)
-    draw_key_3d(10, kb_y, btn_width - 2, 16, CLR_BORDER_YELLOW);
-    draw_debug_text(&g_botScreen, "<-", 10 + btn_width/2 - 3, kb_y + 6, 0.35f, CLR_SHADOW_BLACK);
+    draw_key_3d(10, kb_y, btn_width - 2, 20, CLR_BORDER_YELLOW);
+    draw_debug_text(&g_botScreen, "<-", 10 + btn_width/2 - 3, kb_y + 7, 0.50f, CLR_SHADOW_BLACK);
     
     // Space (SECONDARY button, WHITE text for contrast)
-    draw_key_3d(10 + btn_width, kb_y, btn_width - 2, 16, CLR_BG_SECONDARY);
-    draw_debug_text(&g_botScreen, "SPC", 10 + btn_width + btn_width/2 - 5, kb_y + 6, 0.30f, CLR_TEXT_PRIMARY);
+    draw_key_3d(10 + btn_width, kb_y, btn_width - 2, 20, CLR_BG_SECONDARY);
+    draw_debug_text(&g_botScreen, "SPC", 10 + btn_width + btn_width/2 - 5, kb_y + 7, 0.50f, CLR_TEXT_PRIMARY);
     
     // OK - Save rename (GREEN button, BLACK text for contrast)
-    draw_key_3d(10 + btn_width * 2, kb_y, btn_width - 2, 16, CLR_BORDER_GREEN);
-    draw_debug_text(&g_botScreen, "OK", 10 + btn_width * 2 + btn_width/2 - 3, kb_y + 6, 0.35f, CLR_SHADOW_BLACK);
+    draw_key_3d(10 + btn_width * 2, kb_y, btn_width - 2, 20, CLR_BORDER_GREEN);
+    draw_debug_text(&g_botScreen, "OK", 10 + btn_width * 2 + btn_width/2 - 3, kb_y + 7, 0.50f, CLR_SHADOW_BLACK);
     
     // Cancel - Abort rename (ORANGE button, BLACK text for contrast)
-    draw_key_3d(10 + btn_width * 3, kb_y, btn_width - 2, 16, CLR_BORDER_ORANGE);
-    draw_debug_text(&g_botScreen, "ESC", 10 + btn_width * 3 + btn_width/2 - 5, kb_y + 6, 0.30f, CLR_SHADOW_BLACK);
+    draw_key_3d(10 + btn_width * 3, kb_y, btn_width - 2, 20, CLR_BORDER_ORANGE);
+    draw_debug_text(&g_botScreen, "ESC", 10 + btn_width * 3 + btn_width/2 - 5, kb_y + 7, 0.50f, CLR_SHADOW_BLACK);
 }
 
 void handle_rename_input(void)
@@ -453,7 +454,7 @@ void handle_rename_touch(touchPosition touch)
     // Check rows for letter keys
     // Row 1: QWERTYUIOP
     float row_y = kb_y;
-    if (touch.py >= row_y && touch.py < row_y + 18) {
+    if (touch.py >= row_y && touch.py < row_y + 20) {
         for (int i = 0; i < 10; i++) {
             float key_x = 10.0f + i * key_width;
             if (touch.px >= key_x && touch.px < key_x + key_width) {
@@ -466,8 +467,8 @@ void handle_rename_touch(touchPosition touch)
     }
     
     // Row 2: ASDFGHJKL
-    row_y = kb_y + 18.0f;
-    if (touch.py >= row_y && touch.py < row_y + 18) {
+    row_y = kb_y + 22.0f;
+    if (touch.py >= row_y && touch.py < row_y + 20) {
         for (int i = 0; i < 9; i++) {
             float key_x = 10.0f + (i + 0.5f) * key_width;
             if (touch.px >= key_x && touch.px < key_x + key_width) {
@@ -480,8 +481,8 @@ void handle_rename_touch(touchPosition touch)
     }
     
     // Row 3a: ZXCVBNM
-    row_y = kb_y + 36.0f;
-    if (touch.py >= row_y && touch.py < row_y + 18) {
+    row_y = kb_y + 44.0f;
+    if (touch.py >= row_y && touch.py < row_y + 20) {
         for (int i = 0; i < 7; i++) {
             float key_x = 10.0f + (i + 1.5f) * (key_width - 2);
             if (touch.px >= key_x && touch.px < key_x + key_width) {
@@ -494,8 +495,8 @@ void handle_rename_touch(touchPosition touch)
     }
     
     // Row 3b: Digits 0-9
-    row_y = kb_y + 54.0f;
-    if (touch.py >= row_y && touch.py < row_y + 18) {
+    row_y = kb_y + 66.0f;
+    if (touch.py >= row_y && touch.py < row_y + 20) {
         for (int i = 0; i < 10; i++) {
             float key_x = 10.0f + i * (key_width - 2);
             if (touch.px >= key_x && touch.px < key_x + key_width) {
@@ -507,11 +508,11 @@ void handle_rename_touch(touchPosition touch)
         }
     }
     
-    // Row 4: Action buttons (aligned to actual render position: kb_y + 18 + 18 + 18 + 80)
-    row_y = kb_y + 116.0f;
+    // Row 4: Action buttons (aligned to actual render position: kb_y + 22 + 22 + 22 + 84)
+    row_y = kb_y + 150.0f;
     float btn_width = (SCREEN_WIDTH_BOT - 20) / 4.0f;
     
-    if (touch.py >= row_y && touch.py < row_y + 16) {
+    if (touch.py >= row_y && touch.py < row_y + 20) {
         float key_x = 10.0f;
         
         // Backspace
