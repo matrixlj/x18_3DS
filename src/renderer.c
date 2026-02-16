@@ -42,6 +42,12 @@ void render_top_screen(void)
         return;
     }
     
+    // Rename window is MODAL - render it on top screen regardless of app mode
+    if (g_renaming) {
+        render_rename_window_top();
+        return;
+    }
+    
     // If options window is open on bottom screen, top screen shows normal info
     // (options renders itself on bottom screen)
     
@@ -61,9 +67,6 @@ void render_top_screen(void)
         
         // Rest of top screen empty
         C2D_DrawRectSolid(0, 50, 0.5f, SCREEN_WIDTH_TOP, SCREEN_HEIGHT_TOP - 50, CLR_BG_DARK);
-    } else if (g_renaming) {
-        // Rename window
-        render_rename_window_top();
     } else {
         // ===== TITLE BAR =====
         C2D_DrawRectSolid(0, 0, 0.5f, SCREEN_WIDTH_TOP, 35, C2D_Color32(0x0F, 0x0F, 0x3F, 0xFF));
@@ -304,6 +307,9 @@ void render_frame(void)
     } else if (g_options_window_open) {
         // Options window is MODAL - render ONLY this, nothing else on bottom screen
         render_options_window();
+    } else if (g_renaming) {
+        // Rename window is MODAL - render rename keyboard on bottom screen
+        render_rename_window_bot();
     } else {
         // Normal show manager mode
         render_show_manager();

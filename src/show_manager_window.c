@@ -2,6 +2,8 @@
 #include "show_manager_window.h"
 #include "network_config_window.h"
 #include "options_window.h"
+#include "renderer.h"
+#include "ui_themes.h"
 
 // Color for DELETE/EXIT buttons  
 #define CLR_X C2D_Color32(0xFF, 0x00, 0x00, 0xFF)
@@ -27,37 +29,12 @@ static void handle_rename_touch(touchPosition touch);
 
 void render_show_manager(void)
 {
+    // If renaming, don't render manager (renderer.c handles rename windows)
+    if (g_renaming) return;
+    
     C2D_TargetClear(g_botScreen.target, CLR_BG_PRIMARY);
     C2D_SceneBegin(g_botScreen.target);
     C2D_DrawRectSolid(0.0f, 0.0f, 0.5f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, CLR_BG_PRIMARY);
-    
-    // ===== RENAME MODAL (If active, render ONLY this) =====
-    if (g_renaming) {
-        // Semi-transparent overlay
-        C2D_DrawRectSolid(0.0f, 0.0f, 0.10f, SCREEN_WIDTH_BOT, SCREEN_HEIGHT_BOT, C2D_Color32(0x00, 0x00, 0x00, 0x80));
-        
-        // Central modal panel
-        float modal_w = 260.0f;
-        float modal_h = 100.0f;
-        float modal_x = (SCREEN_WIDTH_BOT - modal_w) / 2.0f;
-        float modal_y = (SCREEN_HEIGHT_BOT - modal_h) / 2.0f;
-        
-        C2D_DrawRectSolid(modal_x, modal_y, 0.20f, modal_w, modal_h, CLR_BG_PRIMARY);
-        draw_3d_border(modal_x, modal_y, modal_w, modal_h, CLR_BORDER_BRIGHT, CLR_SHADOW_BLACK, 2);
-        
-        // Title
-        draw_debug_text(&g_botScreen, "Rename Show", modal_x + 10.0f, modal_y + 8.0f, 0.60f, CLR_BORDER_CYAN);
-        
-        // Input text
-        g_new_name[g_rename_input_pos] = '\0';
-        draw_debug_text(&g_botScreen, g_new_name, modal_x + 10.0f, modal_y + 32.0f, 0.50f, CLR_BORDER_YELLOW);
-        draw_debug_text(&g_botScreen, "_", modal_x + 10.0f + g_rename_input_pos * 7.0f, modal_y + 32.0f, 0.50f, CLR_BORDER_CYAN);
-        
-        // Instructions
-        draw_debug_text(&g_botScreen, "A: Save  B: Cancel  D-Pad: Edit", modal_x + 10.0f, modal_y + 60.0f, 0.35f, CLR_TEXT_SECONDARY);
-        
-        return;  // Don't render the rest when renaming
-    }
     
     // ===== HEADER (full width) =====
     draw_panel_header(0.0f, 0.0f, SCREEN_WIDTH_BOT, 32.0f, "Show Manager", CLR_BORDER_CYAN);
@@ -89,17 +66,11 @@ void render_show_manager(void)
             text_color = clrModified;
         }
         
-        // Renaming mode - show in list (should not reach here since modal takes over)
-        if (g_renaming && i == g_selected_show) {
-            draw_debug_text(&g_botScreen, g_new_name, list_x + 8, item_y + 1, 0.50f, CLR_BORDER_CYAN);
-            draw_debug_text(&g_botScreen, "_", list_x + 8 + g_rename_input_pos * 7, item_y + 1, 0.50f, CLR_BORDER_CYAN);
-        } else {
-            // Show name (truncate if too long)
-            char display_name[32];
-            strncpy(display_name, g_available_shows[i], 28);
-            display_name[28] = '\0';
-            draw_debug_text(&g_botScreen, display_name, list_x + 8, item_y + 1, 0.50f, text_color);
-        }
+        // Show name (truncate if too long)
+        char display_name[32];
+        strncpy(display_name, g_available_shows[i], 28);
+        display_name[28] = '\0';
+        draw_debug_text(&g_botScreen, display_name, list_x + 8, item_y + 1, 0.50f, text_color);
     }
     
     // ===== RIGHT COLUMN: Buttons (210-320px wide) =====
@@ -323,23 +294,24 @@ void render_rename_window_top(void)
     C2D_TargetClear(g_topScreen.target, CLR_BG_PRIMARY);
     C2D_SceneBegin(g_topScreen.target);
     
-    // Header
-    C2D_DrawRectSolid(0, 0, 0.5f, SCREEN_WIDTH_TOP, 50, C2D_Color32(0x0F, 0x0F, 0x3F, 0xFF));
-    C2D_DrawRectangle(0, 0, 0.5f, SCREEN_WIDTH_TOP, 50, CLR_BORDER, CLR_BORDER, CLR_BORDER, CLR_BORDER);
-    draw_debug_text(&g_topScreen, "Rinomina show", 15.0f, 10.0f, 0.60f, CLR_BORDER_CYAN);
+    // Header using the standard panel header style (with gradient background)
+    draw_panel_header(0.0f, 0.0f, SCREEN_WIDTH_TOP, 60, "Rinomina show", CLR_BORDER_CYAN);
     
-    // Input display
-    C2D_DrawRectSolid(0, 50, 0.5f, SCREEN_WIDTH_TOP, SCREEN_HEIGHT_TOP - 50, CLR_BG_PRIMARY);
+    // Title text in front (depth 0.2f to ensure visibility)
+    draw_debug_text(&g_topScreen, "Rinomina show", 15.0f, 20.0f, 0.60f, CLR_BORDER_CYAN);
+    
+    // Input display area (depth 0.4f to place it in front)
+    C2D_DrawRectSolid(0, 60, 0.4f, SCREEN_WIDTH_TOP, SCREEN_HEIGHT_TOP - 60, CLR_BG_PRIMARY);
     
     // Draw input field border
-    draw_3d_border(10, 70, SCREEN_WIDTH_TOP - 20, 40, CLR_BORDER_BRIGHT, CLR_SHADOW_BLACK, 1);
-    C2D_DrawRectSolid(12, 72, 0.51f, SCREEN_WIDTH_TOP - 24, 36, CLR_BG_SECONDARY);
+    draw_3d_border(10, 80, SCREEN_WIDTH_TOP - 20, 40, CLR_BORDER_BRIGHT, CLR_SHADOW_BLACK, 1);
+    C2D_DrawRectSolid(12, 82, 0.35f, SCREEN_WIDTH_TOP - 24, 36, CLR_BG_SECONDARY);
     
     // Show current input text
     g_new_name[g_rename_input_pos] = '\0';
-    draw_debug_text(&g_topScreen, "Nome:", 15.0f, 85.0f, 0.50f, CLR_TEXT_SECONDARY);
-    draw_debug_text(&g_topScreen, g_new_name, 15.0f, 100.0f, 0.60f, CLR_BORDER_YELLOW);
-    draw_debug_text(&g_topScreen, "_", 15.0f + g_rename_input_pos * 10.0f, 100.0f, 0.60f, CLR_BORDER_CYAN);
+    draw_debug_text(&g_topScreen, "Nome:", 15.0f, 95.0f, 0.50f, CLR_TEXT_SECONDARY);
+    draw_debug_text(&g_topScreen, g_new_name, 15.0f, 110.0f, 0.50f, CLR_BORDER_YELLOW);
+    draw_debug_text(&g_topScreen, "_", 15.0f + g_rename_input_pos * 10.0f, 110.0f, 0.50f, CLR_BORDER_CYAN);
     
     // Instructions
     draw_debug_text(&g_topScreen, "A: Conferm  B: Annulla  D-Pad: Modifica", 10.0f, 170.0f, 0.35f, CLR_TEXT_SECONDARY);
@@ -368,7 +340,8 @@ void render_rename_window_bot(void)
         char key_char[2] = {row1[i], '\0'};
         float key_x = 10.0f + i * key_width;
         draw_key_3d(key_x, kb_y, key_width - 2, 16, CLR_BG_SECONDARY);
-        draw_debug_text(&g_botScreen, key_char, key_x + 5, kb_y + 1, 0.35f, CLR_TEXT_PRIMARY);
+        // Center text horizontally and vertically
+        draw_debug_text(&g_botScreen, key_char, key_x + key_width/2 - 2, kb_y + 6, 0.35f, CLR_TEXT_PRIMARY);
     }
     
     // Row 2: ASDFGHJKL
@@ -378,7 +351,8 @@ void render_rename_window_bot(void)
         char key_char[2] = {row2[i], '\0'};
         float key_x = 10.0f + (i + 0.5f) * key_width;
         draw_key_3d(key_x, kb_y, key_width - 2, 16, CLR_BG_SECONDARY);
-        draw_debug_text(&g_botScreen, key_char, key_x + 5, kb_y + 1, 0.35f, CLR_TEXT_PRIMARY);
+        // Center text horizontally and vertically
+        draw_debug_text(&g_botScreen, key_char, key_x + key_width/2 - 2, kb_y + 6, 0.35f, CLR_TEXT_PRIMARY);
     }
     
     // Row 3: ZXCVBNM + digits
@@ -390,35 +364,37 @@ void render_rename_window_bot(void)
             char key_char[2] = {row3[i], '\0'};
             float key_x = 10.0f + (i + 1.5f) * (key_width - 2);
             draw_key_3d(key_x, kb_y, key_width - 2, 16, CLR_BG_SECONDARY);
-            draw_debug_text(&g_botScreen, key_char, key_x + 5, kb_y + 1, 0.35f, CLR_TEXT_PRIMARY);
+            // Center text horizontally and vertically
+            draw_debug_text(&g_botScreen, key_char, key_x + key_width/2 - 2, kb_y + 6, 0.35f, CLR_TEXT_PRIMARY);
         } else {
             // Digits 0-9
             char key_char[2] = {row3[i], '\0'};
             float key_x = 10.0f + (i - 7) * (key_width - 2);
             draw_key_3d(key_x, kb_y + 18, key_width - 2, 16, CLR_BG_SECONDARY);
-            draw_debug_text(&g_botScreen, key_char, key_x + 5, kb_y + 18 + 1, 0.35f, CLR_TEXT_PRIMARY);
+            // Center text horizontally and vertically
+            draw_debug_text(&g_botScreen, key_char, key_x + key_width/2 - 2, kb_y + 18 + 6, 0.35f, CLR_TEXT_PRIMARY);
         }
     }
     
-    // Row 4: Action buttons
-    kb_y += 54.0f;
+    // Row 4: Action buttons (moved lower)
+    kb_y += 80.0f;
     float btn_width = (SCREEN_WIDTH_BOT - 20) / 4.0f;
     
-    // Backspace - Delete last char
+    // Backspace - Delete last char (YELLOW button, BLACK text for contrast)
     draw_key_3d(10, kb_y, btn_width - 2, 16, CLR_BORDER_YELLOW);
-    draw_debug_text(&g_botScreen, "<-", 15, kb_y + 1, 0.35f, CLR_TEXT_PRIMARY);
+    draw_debug_text(&g_botScreen, "<-", 10 + btn_width/2 - 3, kb_y + 6, 0.35f, CLR_SHADOW_BLACK);
     
-    // Space
+    // Space (SECONDARY button, WHITE text for contrast)
     draw_key_3d(10 + btn_width, kb_y, btn_width - 2, 16, CLR_BG_SECONDARY);
-    draw_debug_text(&g_botScreen, "SPC", 10 + btn_width + 8, kb_y + 1, 0.30f, CLR_TEXT_PRIMARY);
+    draw_debug_text(&g_botScreen, "SPC", 10 + btn_width + btn_width/2 - 5, kb_y + 6, 0.30f, CLR_TEXT_PRIMARY);
     
-    // OK - Save rename
+    // OK - Save rename (GREEN button, BLACK text for contrast)
     draw_key_3d(10 + btn_width * 2, kb_y, btn_width - 2, 16, CLR_BORDER_GREEN);
-    draw_debug_text(&g_botScreen, "OK", 10 + btn_width * 2 + 12, kb_y + 1, 0.35f, CLR_TEXT_PRIMARY);
+    draw_debug_text(&g_botScreen, "OK", 10 + btn_width * 2 + btn_width/2 - 3, kb_y + 6, 0.35f, CLR_SHADOW_BLACK);
     
-    // Cancel - Abort rename
+    // Cancel - Abort rename (ORANGE button, BLACK text for contrast)
     draw_key_3d(10 + btn_width * 3, kb_y, btn_width - 2, 16, CLR_BORDER_ORANGE);
-    draw_debug_text(&g_botScreen, "ESC", 10 + btn_width * 3 + 8, kb_y + 1, 0.30f, CLR_TEXT_PRIMARY);
+    draw_debug_text(&g_botScreen, "ESC", 10 + btn_width * 3 + btn_width/2 - 5, kb_y + 6, 0.30f, CLR_SHADOW_BLACK);
 }
 
 void handle_rename_input(void)
@@ -531,11 +507,11 @@ void handle_rename_touch(touchPosition touch)
         }
     }
     
-    // Row 4: Action buttons
-    row_y = kb_y + 72.0f;
+    // Row 4: Action buttons (aligned to actual render position: kb_y + 18 + 18 + 18 + 80)
+    row_y = kb_y + 116.0f;
     float btn_width = (SCREEN_WIDTH_BOT - 20) / 4.0f;
     
-    if (touch.py >= row_y && touch.py < row_y + 18) {
+    if (touch.py >= row_y && touch.py < row_y + 16) {
         float key_x = 10.0f;
         
         // Backspace
